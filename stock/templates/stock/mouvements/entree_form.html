@@ -4,32 +4,26 @@
 {% block title %}{% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} une entrée en stock - GPlus StockPilot{% endblock %}
 
 {% block breadcrumb_items %}
-    <nav class="flex" aria-label="Breadcrumb">
-        <ol class="inline-flex items-center space-x-1 md:space-x-2">
-            <li class="inline-flex items-center">
-                <a href="{% url 'stock:accueil' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-home mr-2"></i>
-                    Accueil
+<nav class="flex" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-2">        
+        <li>
+            <div class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                <a href="{% url 'stock:liste_entrees' %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                    Entrées en stock
                 </a>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <a href="{% url 'stock:liste_entrees' %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
-                        Entrées en stock
-                    </a>
-                </div>
-            </li>
-            <li aria-current="page">
-                <div class="flex items-center">
-                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">
-                        {% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} une entrée
-                    </span>
-                </div>
-            </li>
-        </ol>
-    </nav>
+            </div>
+        </li>
+        <li aria-current="page">
+            <div class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">
+                    {% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} une entrée
+                </span>
+            </div>
+        </li>
+    </ol>
+</nav>
 {% endblock %}
 
 {% block page_title %}
@@ -49,6 +43,150 @@
         {% endif %}
     </p>
 </div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Style amélioré des champs et panneau résumé */
+    input, select, textarea {
+        background-color: #f9fafb;
+        color: #1f2937;
+        border: 2px solid #6b7280;
+        border-radius: 0.375rem;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+        background-color: #ffffff;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+        outline: none;
+        color: #111827;
+    }
+    ::placeholder {
+        color: #6b7280;
+        opacity: 1;
+    }
+
+    .product-details {
+        background-color: #f3f4f6;
+        border: 2px solid #6b7280;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+        color: #374151;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .product-details h4 {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .product-details p {
+        margin-bottom: 0.25rem;
+    }
+    @media (min-width: 1024px) {
+        .product-details {
+            margin-top: 0;
+            margin-left: 1rem;
+        }
+    }
+</style>
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('entreeForm', () => ({
+            produitId: null,
+            produitDetails: null,
+            quantite: 1,
+            prixUnitaire: 0,
+            montantTotal: 0.0,
+            tva: 0,
+            montantTVA: 0.0,
+            montantTTC: 0.0,
+            reference: '',
+            notes: '',
+            fournisseur: '',
+            dateEntree: new Date().toISOString().split('T')[0],
+            loading: false,
+            error: null,
+
+            init() {
+                // Initialisation si nécessaire
+                this.$watch('quantite', value => this.calculerMontantTotal());
+                this.$watch('prixUnitaire', value => this.calculerMontantTotal());
+                this.$watch('tva', value => this.calculerMontantTotal());
+            },
+
+            updateProduitInfo(produitId) {
+                this.produitId = produitId;
+                this.fetchProduitDetails(produitId);
+                console.log('Produit ID:', this.produitId);
+            },
+
+            async fetchProduitDetails(produitId) {
+                if (!produitId) {
+                    this.produitDetails = null;
+                    return;
+                }
+
+                this.loading = true;
+                this.error = null;
+
+                try {
+                    const response = await fetch(`/api/produits/${produitId}/`);
+                    if (!response.ok) throw new Error('Produit non trouvé');
+                    
+                    const data = await response.json();
+                    this.produitDetails = data;
+                    this.prixUnitaire = data.prix_vente || 0;
+                    this.reference = data.reference || '';
+                    this.calculerMontantTotal();
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    this.error = 'Erreur lors du chargement des détails du produit';
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            updateQuantite(event) {
+                const value = parseFloat(event.target.value);
+                this.quantite = isNaN(value) ? 0 : value;
+                this.calculerMontantTotal();
+            },
+
+            updatePrixUnitaire(event) {
+                const value = parseFloat(event.target.value);
+                this.prixUnitaire = isNaN(value) ? 0 : value;
+                this.calculerMontantTotal();
+            },
+
+            updateTVA(event) {
+                const value = parseFloat(event.target.value);
+                this.tva = isNaN(value) ? 0 : value;
+                this.calculerMontantTotal();
+            },
+
+            calculerMontantTotal() {
+                const quantite = parseFloat(this.quantite) || 0;
+                const prixUnitaire = parseFloat(this.prixUnitaire) || 0;
+                const tauxTVA = parseFloat(this.tva) || 0;
+                
+                this.montantTotal = quantite * prixUnitaire;
+                this.montantTVA = (this.montantTotal * tauxTVA) / 100;
+                this.montantTTC = this.montantTotal + this.montantTVA;
+            },
+
+            submitForm() {
+                // Vérification des champs requis
+                if (!this.produitId) {
+                    alert('Veuillez sélectionner un produit');
+                    return;
+                }
+                // Soumission du formulaire
+                this.$el.closest('form').submit();
+            }
+        }));
+    });
+</script>
 {% endblock %}
 
 {% block content %}
@@ -111,7 +249,7 @@
                                 <span class="text-red-500">*</span>
                             </label>
                             <div class="mt-1 relative" :class="{ 'ring-2 ring-blue-500 rounded-lg': focused }">
-                                {% render_field form.produit class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 px-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" @change="updateProduitInfo($event.target.value)" %}
+                                {% render_field form.produit class="block w-full p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 px-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" x-on:change="updateProduitInfo($event.target.value)" %}
                             </div>
                             {% if form.produit.errors %}
                                 <p class="mt-1.5 text-sm text-red-600 flex items-center">
@@ -127,12 +265,28 @@
                                 {{ form.fournisseur.label }}
                             </label>
                             <div class="mt-1 relative" :class="{ 'ring-2 ring-blue-500 rounded-lg': focused }">
-                                {% render_field form.fournisseur class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 px-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" %}
+                                {% render_field form.fournisseur class="block w-full p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 px-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" %}
                             </div>
                             {% if form.fournisseur.errors %}
                                 <p class="mt-1.5 text-sm text-red-600 flex items-center">
                                     <i class="fas fa-exclamation-circle mr-1.5"></i>
                                     {{ form.fournisseur.errors|join:", " }}
+                                </p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Reference -->
+                        <div class="space-y-2 group" x-data="{ focused: false }">
+                            <label for="{{ form.reference.id_for_label }}" class="block text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                {{ form.reference.label }}
+                            </label>
+                            <div class="mt-1 relative" :class="{ 'ring-2 ring-blue-500 rounded-lg': focused }">
+                                {% render_field form.reference class="block w-full p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 px-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" %}
+                            </div>
+                            {% if form.reference.errors %}
+                                <p class="mt-1.5 text-sm text-red-600 flex items-center">
+                                    <i class="fas fa-exclamation-circle mr-1.5"></i>
+                                    {{ form.reference.errors|join:", " }}
                                 </p>
                             {% endif %}
                         </div>
@@ -149,7 +303,7 @@
                                         <i class="fas fa-boxes"></i>
                                     </span>
                                 </div>
-                                {% render_field form.quantite class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 pl-10 pr-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false; updateTotal()" %}
+                                {% render_field form.quantite class="block w-full p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 pl-10 pr-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" @input="updateQuantite($event)" %}
                             </div>
                             {% if form.quantite.errors %}
                                 <p class="mt-1.5 text-sm text-red-600 flex items-center">
@@ -171,7 +325,7 @@
                                         <i class="fas fa-tag"></i>
                                     </span>
                                 </div>
-                                {% render_field form.prix_unitaire class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 pl-10 pr-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false; updateTotal()" %}
+                                {% render_field form.prix_unitaire class="block w-full p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 pl-10 pr-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" @input="updatePrixUnitaire($event)" %}
                             </div>
                             {% if form.prix_unitaire.errors %}
                                 <p class="mt-1.5 text-sm text-red-600 flex items-center">
@@ -183,15 +337,15 @@
 
                         <!-- Date d'entrée -->
                         <div class="space-y-2 group" x-data="{ focused: false }">
-                            <label for="{{ form.date_entree.id_for_label }}" class="block text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
-                                {{ form.date_entree.label }}
+                            <label for="{{ form.date_entree.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Date d'entrée
                                 <span class="text-red-500">*</span>
                             </label>
-                            <div class="mt-1 relative" :class="{ 'ring-2 ring-blue-500 rounded-lg': focused }">
+                            <div class="relative" :class="{ 'ring-2 ring-blue-500 rounded-lg': focused }">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="far fa-calendar text-gray-400"></i>
                                 </div>
-                                {% render_field form.date_entree class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 pl-10 pr-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" %}
+                                <input type="date" id="{{ form.date_entree.id_for_label }}" name="{{ form.date_entree.html_name }}" value="{{ form.date_entree.value|default_if_none:'' }}" class="block w-full p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 pl-10 pr-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" :class="{ 'ring-2 ring-blue-500': focused }">
                             </div>
                             {% if form.date_entree.errors %}
                                 <p class="mt-1.5 text-sm text-red-600 flex items-center">
@@ -207,7 +361,7 @@
                                 {{ form.numero_facture.label }}
                             </label>
                             <div class="mt-1 relative" :class="{ 'ring-2 ring-blue-500 rounded-lg': focused }">
-                                {% render_field form.numero_facture class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 px-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" %}
+                                {% render_field form.numero_facture class="block w-full p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2.5 px-3 transition-colors hover:border-gray-400" x-on:focus="focused = true" x-on:blur="focused = false" %}
                             </div>
                             {% if form.numero_facture.errors %}
                                 <p class="mt-1.5 text-sm text-red-600 flex items-center">
@@ -216,3 +370,263 @@
                                 </p>
                             {% endif %}
                         </div>
+
+                        <!-- Notes -->
+                        <div class="mt-6 pt-4 w-full border-t border-gray-100 flex flex-col h-full">
+                            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="far fa-sticky-note text-blue-600 mr-1"></i>
+                                {{ form.notes.label }}
+                            </label>
+                            {% render_field form.notes class="block w-full h-full p-3 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3 flex flex-col" rows="3" %}
+                            {% if form.notes.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.notes.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonne de droite - Panneau d'information -->
+            <div class="lg:col-span-4">
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden sticky top-6">
+                    <!-- En-tête du panneau -->
+                    <div class="px-4 py-5 sm:px-6 bg-gradient-to-r from-blue-50 to-blue-100">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                            <span>Résumé de l'entrée</span>
+                        </h3>
+                    </div>
+                    
+                    <!-- Contenu du panneau -->
+                    <div class="p-6">
+                        <!-- Section d'information sur le produit -->
+                        <div id="produit-info" class="space-y-4">
+                            <div class="text-center py-6 px-4 bg-gray-50 rounded-lg border border-dashed border-gray-300" x-show="!produitDetails">
+                                <i class="fas fa-cube text-4xl text-gray-300 mb-3"></i>
+                                <p class="text-sm text-gray-500">Sélectionnez un produit pour voir les détails</p>
+                            </div>
+                            
+                            <!-- Template pour afficher les détails du produit -->
+                            <div id="produit-details" class="space-y-4" x-show="produitDetails">
+                                <!-- Image et nom du produit -->
+                                <div class="flex items-start space-x-3">
+                                    <div id="produit-image" class="flex-shrink-0 h-16 w-16 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
+                                        <i class="fas fa-box text-gray-400 text-xl"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 id="produit-nom" class="text-sm font-medium text-gray-900 truncate" x-text="produitDetails.nom"></h4>
+                                        <p id="produit-reference" class="text-xs text-gray-500 mt-1" x-text="produitDetails.reference"></p>
+                                        <p id="produit-categorie" class="text-xs text-gray-500" x-text="produitDetails.categorie"></p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Stock actuel -->
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="font-medium text-gray-700">Stock actuel :</span>
+                                        <span id="stock-actuel" class="font-semibold" x-text="stockActuel"></span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div id="stock-progress" class="bg-blue-600 h-2 rounded-full" :style="`width: ${(stockActuel / (stockActuel + quantite)) * 100}%`"></div>
+                                    </div>
+                                    <div class="flex justify-between text-xs text-gray-500">
+                                        <span>0</span>
+                                        <span id="stock-max" x-text="stockActuel + quantite"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Dernier prix -->
+                                <div class="text-sm">
+                                    <div class="flex justify-between py-1">
+                                        <span class="text-gray-600">Dernier prix d'achat :</span>
+                                        <span id="dernier-prix" class="font-medium text-gray-900" x-text="produitDetails.dernier_prix"></span>
+                                    </div>
+                                    <div class="flex justify-between py-1">
+                                        <span class="text-gray-600">Stock minimum :</span>
+                                        <span id="stock-min" class="font-medium text-gray-900" x-text="stockMin"></span>
+                                    </div>
+                                    <div class="flex justify-between py-1">
+                                        <span class="text-gray-600">Stock après entrée :</span>
+                                        <span id="stock-apres-entree" class="font-semibold"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Ligne de séparation -->
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-base font-semibold text-gray-900">Total</span>
+                                    <span id="total-entree" class="text-2xl font-bold text-blue-600" x-text="montantTotal.toFixed(2) + ' €'"></span>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">HT, avant taxes et remises</p>
+                            </div>
+                            
+                            <!-- Boutons d'action -->
+                            <div class="mt-6 space-y-3">
+                                <button type="submit" 
+                                        class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150">
+                                    <i class="fas fa-save mr-2"></i>
+                                    {% if form.instance.pk %}Mettre à jour{% else %}Enregistrer l'entrée{% endif %}
+                                    <span id="submit-spinner" class="ml-2 hidden">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                    </span>
+                                </button>
+                                
+                                <a href="{% url 'stock:liste_entrees' %}" 
+                                   class="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150">
+                                    <i class="fas fa-times-circle mr-2"></i>
+                                    Annuler
+                                </a>
+                            </div>
+                            
+                            <!-- Message d'avertissement pour le stock faible -->
+                            <div id="stock-warning" class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-r hidden">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-yellow-700">
+                                            Attention : Le stock après cette entrée sera inférieur au stock minimum recommandé.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Message d'erreur pour stock insuffisant -->
+                            <div id="stock-error" class="mt-4 p-3 bg-red-50 border-l-4 border-red-400 rounded-r hidden">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-exclamation-circle text-red-400"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-red-700">
+                                            Erreur : Stock insuffisant pour effectuer cette entrée.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% block extra_js %}
+<!-- Chargement d'Alpine.js en premier -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+
+<script>
+// Vérifier si Alpine est disponible
+function checkAlpine() {
+    if (typeof Alpine === 'undefined') {
+        console.error('ERREUR: Alpine.js n\'est pas chargé correctement');
+        return false;
+    }
+    console.log('Alpine.js est chargé, version:', Alpine.version);
+    return true;
+}
+
+// Initialiser le composant quand Alpine est prêt
+document.addEventListener('alpine:init', function() {
+    console.log('Initialisation du composant Alpine...');
+    
+    Alpine.data('entreeForm', () => ({
+        // Données réactives
+        produitId: null,
+        produitDetails: null,
+        quantite: 1,
+        prixUnitaire: 0,
+        montantTotal: 0.0,
+        tva: 0,
+        montantTVA: 0.0,
+        montantTTC: 0.0,
+        reference: '',
+        notes: '',
+        fournisseur: '',
+        dateEntree: new Date().toISOString().split('T')[0],
+        loading: false,
+        error: null,
+        
+        // Initialisation
+        init() {
+            console.log('Composant entreeForm initialisé');
+            // Surveiller les changements sur les propriétés
+            this.$watch('quantite', () => this.calculerMontantTotal());
+            this.$watch('prixUnitaire', () => this.calculerMontantTotal());
+            this.$watch('tva', () => this.calculerMontantTotal());
+            
+            // Vérifier si on a des données initiales
+            if (this.$el.querySelector('[name="produit"]').value) {
+                this.updateProduitInfo(this.$el.querySelector('[name="produit"]').value);
+            }
+        },
+        
+        // Méthodes
+        updateProduitInfo(produitId) {
+            this.produitId = produitId;
+            this.fetchProduitDetails(produitId);
+            console.log('Produit sélectionné:', produitId);
+        },
+        
+        async fetchProduitDetails(produitId) {
+            if (!produitId) {
+                this.produitDetails = null;
+                return;
+            }
+            
+            this.loading = true;
+            this.error = null;
+            
+            try {
+                const response = await fetch(`/api/produits/${produitId}/`);
+                if (!response.ok) throw new Error('Produit non trouvé');
+                
+                const data = await response.json();
+                this.produitDetails = data;
+                this.prixUnitaire = data.prix_vente || 0;
+                this.reference = data.reference || '';
+                this.calculerMontantTotal();
+            } catch (error) {
+                console.error('Erreur:', error);
+                this.error = 'Erreur lors du chargement des détails du produit';
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        calculerMontantTotal() {
+            const quantite = parseFloat(this.quantite) || 0;
+            const prixUnitaire = parseFloat(this.prixUnitaire) || 0;
+            const tauxTVA = parseFloat(this.tva) || 0;
+            
+            this.montantTotal = quantite * prixUnitaire;
+            this.montantTVA = (this.montantTotal * tauxTVA) / 100;
+            this.montantTTC = this.montantTotal + this.montantTVA;
+        },
+        
+        submitForm() {
+            if (!this.produitId) {
+                alert('Veuillez sélectionner un produit');
+                return;
+            }
+            this.$el.closest('form').submit();
+        }
+    }));
+    
+    console.log('Composant entreeForm enregistré avec succès');
+});
+
+// Vérifier le chargement d'Alpine après un court délai
+setTimeout(() => {
+    if (typeof Alpine === 'undefined') {
+        console.error('ERREUR: Alpine.js n\'a pas pu être chargé');
+    } else {
+        console.log('Alpine.js est prêt à être utilisé');
+    }
+}, 500);
+</script>
+{% endblock %}
+{% endblock %}

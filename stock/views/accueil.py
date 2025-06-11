@@ -23,18 +23,23 @@ def accueil(request):
         'sorties': SortieStock.objects.filter(date__gte=date_limite).count(),
     }
     
-    # Derniers mouvements avec une seule requête
-    dernieres_entrees = EntreeStock.objects.select_related('produit', 'utilisateur')\
-        .order_by('-date')[:5]
-    dernieres_sorties = SortieStock.objects.select_related('produit', 'utilisateur')\
-        .order_by('-date')[:5]
+    # Derniers mouvements optimisés avec une seule requête
+    from itertools import chain
     
-    # Combiner et trier les entrées et sorties
+    # Récupérer les 10 derniers mouvements (entrées et sorties)
+    derniers_mouvements = list(chain(
+        EntreeStock.objects.select_related('produit', 'utilisateur')
+                         .order_by('-date')[:10],
+        SortieStock.objects.select_related('produit', 'utilisateur')
+                         .order_by('-date')[:10]
+    ))
+    
+    # Trier et garder les 10 plus récents
     derniers_mouvements = sorted(
-        list(dernieres_entrees) + list(dernieres_sorties),
+        derniers_mouvements,
         key=lambda x: x.date,
         reverse=True
-    )[:5]
+    )[:10]
     
     # Produits en alerte avec leur catégorie
     produits_en_alerte = Produit.objects.select_related('categorie')\
@@ -116,9 +121,7 @@ def accueil(request):
         },
         'produits_alerte_liste': produits_en_alerte,
         'categories_stats': categories_stats,
-        'derniers_mouvements': derniers_mouvements[:10],
-        'dernieres_entrees': dernieres_entrees,
-        'dernieres_sorties': dernieres_sorties,
+        'derniers_mouvements': derniers_mouvements,
         'notifications': notifications_non_lues,
     }
     return render(request, 'stock/accueil.html', context)

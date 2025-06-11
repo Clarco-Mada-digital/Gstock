@@ -18,6 +18,9 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'stock/css/custom.css' %}">
+
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -35,8 +38,7 @@
             <div class="flex items-center space-x-4">
                 <a href="{% url 'stock:accueil' %}" class="text-2xl font-bold flex items-center">
                     <i class="fas fa-boxes mr-2 text-blue-600"></i>
-                    <span class="hidden sm:inline">GPlus</span>
-                    <span class="sm:inline font-normal text-blue-700">StockPilot</span>
+                    <span class="hidden sm:inline">GStock</span>
                 </a>
             </div>
             
@@ -60,7 +62,7 @@
                 <a href="{% url 'stock:liste_categories' %}" class="hover:text-blue-200 transition flex items-center {% if 'categorie' in request.resolver_match.url_name or 'categories' in request.resolver_match.url_name %}text-white font-medium{% endif %}">
                     <i class="fas fa-tags mr-2"></i> Catégories
                 </a>
-                <div class="relative group">
+                <!-- <div class="relative group">
                     <button class="hover:text-blue-200 transition flex items-center focus:outline-none">
                         <i class="fas fa-exchange-alt mr-1"></i> Mouvements
                         <i class="fas fa-chevron-down ml-1 text-xs"></i>
@@ -80,7 +82,7 @@
                             <i class="fas fa-plus-circle mr-2 text-red-500"></i> Nouvelle sortie
                         </a>
                     </div>
-                </div>
+                </div> -->
                 <a href="{% url 'stock:rapport_stock_faible' %}" class="hover:text-blue-200 transition flex items-center {% if 'rapports' in request.resolver_match.url_name %}text-white font-medium{% endif %}">
                     <i class="fas fa-chart-bar mr-2"></i> Rapports
                 </a>

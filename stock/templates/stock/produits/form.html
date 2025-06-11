@@ -61,7 +61,7 @@
                             {% if form.code.field.required %}<span class="text-red-500">*</span>{% endif %}
                         </label>
                         <div class="mt-1">
-                            {{ form.code|add_class:"form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {{ form.code|add_class:"form-input block p-3 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
                             {% if form.code.help_text %}
                                 <p class="mt-1 text-sm text-gray-500">{{ form.code.help_text }}</p>
                             {% endif %}
@@ -78,7 +78,7 @@
                             {% if form.designation.field.required %}<span class="text-red-500">*</span>{% endif %}
                         </label>
                         <div class="mt-1">
-                            {{ form.designation|add_class:"form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {{ form.designation|add_class:"form-input block p-3 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
                             {% if form.designation.help_text %}
                                 <p class="mt-1 text-sm text-gray-500">{{ form.designation.help_text }}</p>
                             {% endif %}
@@ -95,7 +95,7 @@
                             {% if form.categorie.field.required %}<span class="text-red-500">*</span>{% endif %}
                         </label>
                         <div class="mt-1">
-                            {{ form.categorie|add_class:"form-select block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {{ form.categorie|add_class:"form-select block p-3 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
                             {% if form.categorie.help_text %}
                                 <p class="mt-1 text-sm text-gray-500">{{ form.categorie.help_text }}</p>
                             {% endif %}
@@ -112,7 +112,7 @@
                             {% if form.fournisseur.field.required %}<span class="text-red-500">*</span>{% endif %}
                         </label>
                         <div class="mt-1">
-                            {{ form.fournisseur|add_class:"form-select block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {{ form.fournisseur|add_class:"form-select block p-3 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
                             {% if form.fournisseur.help_text %}
                                 <p class="mt-1 text-sm text-gray-500">{{ form.fournisseur.help_text }}</p>
                             {% endif %}
@@ -124,7 +124,7 @@
                     
                     <!-- Photo du produit -->
                     <div class="form-group">
-                        <label for="{{ form.photo.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.photo.id_for_label }}" class="block my-5 text-sm font-medium text-gray-700">
                             {{ form.photo.label }}
                             {% if form.photo.field.required %}<span class="text-red-500">*</span>{% endif %}
                         </label>
@@ -171,7 +171,7 @@
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">€</span>
                             </div>
-                            {{ form.prix_achat|add_class:"pl-7 form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {{ form.prix_achat|add_class:"pl-7 p-3 form-input block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
                         </div>
                         {% if form.prix_achat.help_text %}
                             <p class="mt-1 text-sm text-gray-500">{{ form.prix_achat.help_text }}</p>
@@ -191,7 +191,7 @@
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">€</span>
                             </div>
-                            {{ form.prix_vente|add_class:"pl-7 form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {{ form.prix_vente|add_class:"pl-7 p-3 form-input block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
                         </div>
                         {% if form.prix_vente.help_text %}
                             <p class="mt-1 text-sm text-gray-500">{{ form.prix_vente.help_text }}</p>
@@ -208,7 +208,7 @@
                             {% if form.quantite_stock.field.required %}<span class="text-red-500">*</span>{% endif %}
                         </label>
                         <div class="mt-1">
-                            {{ form.quantite_stock|add_class:"form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {{ form.quantite_stock|add_class:"form-input block p-3 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
                             {% if form.quantite_stock.help_text %}
                                 <p class="mt-1 text-sm text-gray-500">{{ form.quantite_stock.help_text }}</p>
                             {% endif %}
@@ -225,7 +225,7 @@
                             {% if form.seuil_alerte.field.required %}<span class="text-red-500">*</span>{% endif %}
                         </label>
                         <div class="mt-1">
-                            {{ form.seuil_alerte|add_class:"form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {{ form.seuil_alerte|add_class:"form-input block p-3 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
                             {% if form.seuil_alerte.help_text %}
                                 <p class="mt-1 text-sm text-gray-500">{{ form.seuil_alerte.help_text }}</p>
                             {% endif %}
@@ -244,7 +244,7 @@
                     {% if form.description.field.required %}<span class="text-red-500">*</span>{% endif %}
                 </label>
                 <div class="mt-1">
-                    {{ form.description|add_class:"form-textarea block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"|attr:"rows:3" }}
+                    {{ form.description|add_class:"form-textarea block p-3 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"|attr:"rows:3" }}
                     {% if form.description.help_text %}
                         <p class="mt-1 text-sm text-gray-500">{{ form.description.help_text }}</p>
                     {% endif %}
