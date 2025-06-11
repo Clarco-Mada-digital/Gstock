@@ -1,0 +1,481 @@
+{% extends 'stock/base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} une entrée en stock - GPlus StockPilot{% endblock %}
+
+{% block breadcrumb_items %}
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-2">
+            <li class="inline-flex items-center">
+                <a href="{% url 'stock:accueil' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-home mr-2"></i>
+                    Accueil
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'stock:liste_entrees' %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                        Entrées en stock
+                    </a>
+                </div>
+            </li>
+            <li aria-current="page">
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">
+                        {% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} une entrée
+                    </span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+{% endblock %}
+
+{% block page_title %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">
+        {% if form.instance.pk %}
+            <i class="fas fa-edit text-blue-600 mr-2"></i>Modifier l'entrée de stock
+        {% else %}
+            <i class="fas fa-plus-circle text-blue-600 mr-2"></i>Nouvelle entrée en stock
+        {% endif %}
+    </h1>
+    <p class="mt-2 text-sm text-gray-600">
+        {% if form.instance.pk %}
+            Mettez à jour les détails de l'entrée en stock
+        {% else %}
+            Enregistrez une nouvelle entrée de produits en stock
+        {% endif %}
+    </p>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-r">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-400 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
+            <!-- Colonne de gauche - Formulaire principal -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6 pb-2 border-b border-gray-100">
+                        <i class="fas fa-clipboard-list text-blue-600 mr-2"></i>Détails de l'entrée
+                    </h3>
+                        
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Produit -->
+                        <div class="space-y-2">
+                            <label for="{{ form.produit.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.produit.label }}
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative mt-1">
+                                {% render_field form.produit class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 pl-3 pr-10" %}
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                            {% if form.produit.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.produit.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Fournisseur -->
+                        <div class="space-y-2">
+                            <label for="{{ form.fournisseur.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.fournisseur.label }}
+                            </label>
+                            <div class="relative mt-1">
+                                {% render_field form.fournisseur class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 pl-3 pr-10" %}
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                            {% if form.fournisseur.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.fournisseur.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Quantité -->
+                        <div class="space-y-2">
+                            <label for="{{ form.quantite.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.quantite.label }}
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1">
+                                {% render_field form.quantite class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3" %}
+                            </div>
+                            {% if form.quantite.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.quantite.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Prix unitaire -->
+                        <div class="space-y-2">
+                            <label for="{{ form.prix_unitaire.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.prix_unitaire.label }}
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">€</span>
+                                </div>
+                                {% render_field form.prix_unitaire class="block w-full rounded-md border-gray-300 pl-7 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 pr-3" %}
+                            </div>
+                            {% if form.prix_unitaire.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.prix_unitaire.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Référence -->
+                        <div class="space-y-2">
+                            <label for="{{ form.reference.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.reference.label }}
+                            </label>
+                            <div class="mt-1">
+                                {% render_field form.reference class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3" %}
+                            </div>
+                            {% if form.reference.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.reference.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Date (si édition) -->
+                        {% if form.instance.pk %}
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Date d'entrée
+                                </label>
+                                <div class="mt-1">
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="far fa-calendar text-gray-400"></i>
+                                        </div>
+                                        <input type="text" readonly 
+                                               class="block w-full rounded-md border-gray-300 bg-gray-50 pl-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 pr-3" 
+                                               value="{{ form.instance.date|date:'d/m/Y H:i' }}">
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="far fa-sticky-note text-blue-600 mr-1"></i>
+                            {{ form.notes.label }}
+                        </label>
+                        <div class="mt-1">
+                            {% render_field form.notes class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3" rows="3" %}
+                        </div>
+                        {% if form.notes.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.notes.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Colonne de droite - Panneau d'information -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden sticky top-6">
+                        <div class="px-4 py-4 bg-gray-50 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                <span>Résumé</span>
+                            </h3>
+                        </div>
+                        <div class="p-6">
+                            <div id="produit-info" class="space-y-6">
+                                <div class="text-center py-8 px-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                                    <i class="fas fa-cube text-4xl text-gray-300 mb-3"></i>
+                                    <p class="text-sm text-gray-500">Sélectionnez un produit pour voir les détails</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8 pt-6 border-t border-gray-200">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-base font-medium text-gray-700">Total</span>
+                                    <span id="total-entree" class="text-2xl font-bold text-blue-600">0,00 €</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8 space-y-3">
+                                <button type="submit" 
+                                        class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                                    <i class="fas fa-save mr-2"></i>
+                                    {% if form.instance.pk %}Mettre à jour{% else %}Enregistrer l'entrée{% endif %}
+                                </button>
+                                
+                                <a href="{% url 'stock:liste_entrees' %}" 
+                                   class="w-full flex justify-center items-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                                    <i class="fas fa-times mr-2"></i>
+                                    Annuler
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments du DOM
+        const produitSelect = document.getElementById('{{ form.produit.id_for_label }}');
+        const quantiteInput = document.getElementById('{{ form.quantite.id_for_label }}');
+        const prixUnitaireInput = document.getElementById('{{ form.prix_unitaire.id_for_label }}');
+        const produitInfoDiv = document.getElementById('produit-info');
+        const totalEntree = document.getElementById('total-entree');
+        const form = document.querySelector('form');
+        
+        // Cache pour stocker les données des produits
+        let produitsCache = {};
+        let isSubmitting = false;
+        
+        // Fonction pour afficher un indicateur de chargement
+        function showLoading(element, message = 'Chargement...') {
+            element.innerHTML = `
+                <div class="text-center py-6">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                    <p class="text-sm text-gray-500">${message}</p>
+                </div>`;
+        }
+        
+        // Fonction pour afficher une erreur
+        function showError(element, message) {
+            element.innerHTML = `
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400 text-xl"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700">${message}</p>
+                        </div>
+                    </div>
+                </div>`;
+        }
+        
+        // Fonction pour formater les nombres
+        function formatNumber(number) {
+            return new Intl.NumberFormat('fr-FR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(number);
+        }
+        
+        // Fonction pour animer la mise à jour d'un élément
+        function animateUpdate(element) {
+            element.classList.add('scale-105', 'transition-transform', 'duration-200');
+            setTimeout(() => {
+                element.classList.remove('scale-105');
+            }, 200);
+        }
+        
+        // Fonction pour charger les données d'un produit
+        async function loadProduitData(produitId) {
+            if (produitsCache[produitId]) {
+                return produitsCache[produitId];
+            }
+            
+            try {
+                const response = await fetch(`/api/produits/${produitId}/`);
+                if (!response.ok) throw new Error('Produit non trouvé');
+                
+                const data = await response.json();
+                produitsCache[produitId] = data;
+                return data;
+            } catch (error) {
+                console.error('Erreur lors du chargement du produit:', error);
+                throw error;
+            }
+        }
+        
+        // Fonction pour mettre à jour les informations du produit
+        async function updateProduitInfo(produitId) {
+            if (!produitId) {
+                produitInfoDiv.innerHTML = `
+                    <div class="text-center py-8 px-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                        <i class="fas fa-cube text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-sm text-gray-500">Sélectionnez un produit pour voir les détails</p>
+                    </div>`;
+                return;
+            }
+            
+            showLoading(produitInfoDiv, 'Chargement des détails du produit...');
+            
+            try {
+                const data = await loadProduitData(produitId);
+                
+                // Calculer le stock après entrée
+                const quantite = parseFloat(quantiteInput.value) || 0;
+                const stockApresEntree = data.quantite_stock + quantite;
+                
+                // Mettre à jour l'interface
+                produitInfoDiv.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-16 w-16 rounded-md bg-gray-100 flex items-center justify-center">
+                                <i class="fas fa-box text-2xl text-gray-400"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium text-gray-900">${data.designation}</h4>
+                                <p class="text-sm text-gray-500">${data.code || 'Aucune référence'}</p>
+                                <div class="mt-1">
+                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-medium ${data.quantite_stock <= data.stock_min ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                        Stock: ${data.quantite_stock} ${data.unite_mesure || 'unité(s)'}
+                                    </span>
+                                    ${data.stock_min ? `
+                                        <span class="ml-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            Min: ${data.stock_min} ${data.unite_mesure || 'unité(s)'}
+                                        </span>` : ''
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Catégorie</span>
+                                <span class="font-medium text-gray-900">${data.categorie || 'Non spécifiée'}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Dernier prix</span>
+                                <span class="font-medium text-gray-900">${data.prix_achat ? formatNumber(data.prix_achat) + ' €' : 'N/A'}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Stock après entrée</span>
+                                <span class="font-medium text-gray-900" id="stock-apres-entree">
+                                    ${stockApresEntree} ${data.unite_mesure || 'unité(s)'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>`;
+                
+                // Mettre à jour le prix unitaire avec le dernier prix d'achat si vide
+                if (prixUnitaireInput && !prixUnitaireInput.value && data.prix_achat) {
+                    prixUnitaireInput.value = data.prix_achat;
+                    updateTotal();
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement du produit:', error);
+                showError(produitInfoDiv, 'Impossible de charger les détails du produit. Veuillez réessayer.');
+            }
+        }
+        
+        // Fonction pour mettre à jour le total
+        function updateTotal() {
+            if (!quantiteInput || !prixUnitaireInput) return;
+            
+            const quantite = parseFloat(quantiteInput.value) || 0;
+            const prixUnitaire = parseFloat(prixUnitaireInput.value) || 0;
+            const total = quantite * prixUnitaire;
+            
+            // Mettre à jour l'affichage avec animation
+            totalEntree.textContent = `${formatNumber(total)} €`;
+            animateUpdate(totalEntree);
+            
+            // Mettre à jour le stock après entrée si un produit est sélectionné
+            if (produitSelect && produitSelect.value) {
+                const stockApresEntreeElement = document.getElementById('stock-apres-entree');
+                if (stockApresEntreeElement) {
+                    const produit = produitsCache[produitSelect.value];
+                    if (produit) {
+                        const stockApresEntree = produit.quantite_stock + quantite;
+                        stockApresEntreeElement.textContent = 
+                            `${stockApresEntree} ${produit.unite_mesure || 'unité(s)'}`;
+                            
+                        // Mise en évidence du stock critique
+                        if (produit.stock_min && stockApresEntree <= produit.stock_min) {
+                            stockApresEntreeElement.classList.add('text-red-600', 'font-bold');
+                        } else {
+                            stockApresEntreeElement.classList.remove('text-red-600', 'font-bold');
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Gestionnaire de soumission du formulaire
+        async function handleSubmit(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return;
+            }
+            
+            // Validation côté client
+            if (!produitSelect.value) {
+                showError(produitInfoDiv, 'Veuillez sélectionner un produit');
+                produitSelect.focus();
+                e.preventDefault();
+                return;
+            }
+            
+            // Désactiver le bouton de soumission
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalButtonContent = submitButton.innerHTML;
+            
+            submitButton.disabled = true;
+            submitButton.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                ${submitButton.textContent.trim()}
+            `;
+            
+            isSubmitting = true;
+        }
+        
+        // Événements
+        if (produitSelect) {
+            produitSelect.addEventListener('change', function() {
+                updateProduitInfo(this.value);
+            });
+            
+            // Charger les infos du produit au chargement si déjà sélectionné
+            if (produitSelect.value) {
+                updateProduitInfo(produitSelect.value);
+            }
+        }
+        
+        if (quantiteInput && prixUnitaireInput) {
+            quantiteInput.addEventListener('input', updateTotal);
+            prixUnitaireInput.addEventListener('input', updateTotal);
+        }
+        
+        // Gestion de la soumission du formulaire
+        if (form) {
+            form.addEventListener('submit', handleSubmit);
+        }
+        
+        // Initialiser le total
+        if (quantiteInput && prixUnitaireInput) {
+            updateTotal();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "stock/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Profil utilisateur" %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h1 class="text-2xl font-semibold text-gray-800">{% trans "Mon profil" %}</h1>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Colonne de gauche - Informations du profil -->
+                <div class="md:col-span-1">
+                    <div class="flex flex-col items-center">
+                        <div class="h-32 w-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-4xl mb-4">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold text-gray-800">{{ user.get_full_name|default:user.email }}</h2>
+                        <p class="text-sm text-gray-500">{{ user.email }}</p>
+                        
+                        <div class="mt-4 w-full">
+                            <a href="{% url 'account_change_password' %}" 
+                               class="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <i class="fas fa-key mr-2"></i>
+                                {% trans "Changer le mot de passe" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Colonne de droite - Détails du compte -->
+                <div class="md:col-span-2">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Informations du compte" %}</h3>
+                        
+                        <dl class="space-y-4">
+                            <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt class="text-sm font-medium text-gray-500">{% trans "Nom complet" %}</dt>
+                                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                    {{ user.get_full_name|default:"Non défini" }}
+                                </dd>
+                            </div>
+                            
+                            <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt class="text-sm font-medium text-gray-500">{% trans "Email" %}</dt>
+                                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                    {{ user.email }}
+                                </dd>
+                            </div>
+                            
+                            <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt class="text-sm font-medium text-gray-500">{% trans "Dernière connexion" %}</dt>
+                                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                    {{ user.last_login|date:"d/m/Y H:i" }}
+                                </dd>
+                            </div>
+                            
+                            <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                                <dt class="text-sm font-medium text-gray-500">{% trans "Date d'inscription" %}</dt>
+                                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                    {{ user.date_joined|date:"d/m/Y" }}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

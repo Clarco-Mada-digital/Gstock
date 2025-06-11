@@ -1,0 +1,333 @@
+{% extends 'stock/base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} un produit - GPlus StockPilot{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="inline-flex items-center">
+        <a href="{% url 'stock:liste_produits' %}" class="text-blue-600 hover:text-blue-800">Produits</a>
+        <span class="mx-2 text-gray-400">/</span>
+    </li>
+    <li class="inline-flex items-center">
+        <span class="text-gray-500">{% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} un produit</span>
+    </li>
+{% endblock %}
+
+{% block page_title %}
+    {% if form.instance.pk %}
+        Modifier le produit
+    {% else %}
+        Ajouter un nouveau produit
+    {% endif %}
+    <p class="mt-1 text-sm font-normal text-gray-500">
+        {% if form.instance.pk %}
+            Mettez à jour les informations du produit
+        {% else %}
+            Remplissez les champs pour ajouter un nouveau produit
+        {% endif %}
+    </p>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Colonne de gauche -->
+                <div class="space-y-6">
+                    <!-- Code du produit -->
+                    <div class="form-group">
+                        <label for="{{ form.code.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.code.label }}
+                            {% if form.code.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.code|add_class:"form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {% if form.code.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.code.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.code.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Désignation -->
+                    <div class="form-group">
+                        <label for="{{ form.designation.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.designation.label }}
+                            {% if form.designation.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.designation|add_class:"form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {% if form.designation.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.designation.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.designation.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Catégorie -->
+                    <div class="form-group">
+                        <label for="{{ form.categorie.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.categorie.label }}
+                            {% if form.categorie.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.categorie|add_class:"form-select block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {% if form.categorie.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.categorie.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.categorie.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Fournisseur -->
+                    <div class="form-group">
+                        <label for="{{ form.fournisseur.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.fournisseur.label }}
+                            {% if form.fournisseur.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.fournisseur|add_class:"form-select block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {% if form.fournisseur.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.fournisseur.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.fournisseur.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Photo du produit -->
+                    <div class="form-group">
+                        <label for="{{ form.photo.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.photo.label }}
+                            {% if form.photo.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            <div class="mt-1 flex items-center">
+                                <span class="inline-block h-12 w-12 overflow-hidden bg-gray-100 rounded-full">
+                                    {% if form.instance.photo %}
+                                        <img src="{{ form.instance.photo.url }}" alt="Photo actuelle" class="h-full w-full text-gray-300">
+                                    {% else %}
+                                        <svg class="h-full w-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    {% endif %}
+                                </span>
+                                <label for="{{ form.photo.id_for_label }}" class="ml-5">
+                                    <span class="px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
+                                        Choisir une photo
+                                    </span>
+                                    {{ form.photo|add_class:"sr-only" }}
+                                    <p id="file-name" class="mt-1 text-sm text-gray-500">
+                                        {% if form.instance.photo %}{{ form.instance.photo.name|slice:"7:" }}{% else %}Aucun fichier sélectionné{% endif %}
+                                    </p>
+                                </label>
+                            </div>
+                            {% if form.photo.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.photo.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.photo.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Colonne de droite -->
+                <div class="space-y-6">
+                    <!-- Prix d'achat -->
+                    <div class="form-group">
+                        <label for="{{ form.prix_achat.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.prix_achat.label }}
+                            {% if form.prix_achat.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">€</span>
+                            </div>
+                            {{ form.prix_achat|add_class:"pl-7 form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                        </div>
+                        {% if form.prix_achat.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.prix_achat.help_text }}</p>
+                        {% endif %}
+                        {% for error in form.prix_achat.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Prix de vente -->
+                    <div class="form-group">
+                        <label for="{{ form.prix_vente.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.prix_vente.label }}
+                            {% if form.prix_vente.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">€</span>
+                            </div>
+                            {{ form.prix_vente|add_class:"pl-7 form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                        </div>
+                        {% if form.prix_vente.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.prix_vente.help_text }}</p>
+                        {% endif %}
+                        {% for error in form.prix_vente.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Quantité en stock -->
+                    <div class="form-group">
+                        <label for="{{ form.quantite_stock.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.quantite_stock.label }}
+                            {% if form.quantite_stock.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.quantite_stock|add_class:"form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {% if form.quantite_stock.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.quantite_stock.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.quantite_stock.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Seuil d'alerte -->
+                    <div class="form-group">
+                        <label for="{{ form.seuil_alerte.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.seuil_alerte.label }}
+                            {% if form.seuil_alerte.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.seuil_alerte|add_class:"form-input block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" }}
+                            {% if form.seuil_alerte.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.seuil_alerte.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.seuil_alerte.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    {{ form.description.label }}
+                    {% if form.description.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                <div class="mt-1">
+                    {{ form.description|add_class:"form-textarea block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"|attr:"rows:3" }}
+                    {% if form.description.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.description.help_text }}</p>
+                    {% endif %}
+                    {% for error in form.description.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 mt-6">
+                <a href="{% url 'stock:liste_produits' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Annuler
+                </a>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    {% if form.instance.pk %}
+                        Mettre à jour
+                    {% else %}
+                        Enregistrer
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Mise à jour du nom du fichier sélectionné
+    function updateFileName(input) {
+        const fileName = input.files[0] ? input.files[0].name : 'Aucun fichier sélectionné';
+        document.getElementById('file-name').textContent = fileName;
+    }
+    
+    // Formatage des champs de prix
+    document.addEventListener('DOMContentLoaded', function() {
+        // Formatage des champs de prix à la saisie
+        function formatPrice(input) {
+            if (!input) return;
+            
+            // Ne formater que si le champ est vide ou contient une valeur numérique
+            if (input.value === '' || /^\d+(\.\d{0,2})?$/.test(input.value)) {
+                // Enregistrer la position du curseur
+                const start = input.selectionStart;
+                const end = input.selectionEnd;
+                
+                // Formater la valeur avec 2 décimales
+                let value = input.value.replace(/[^0-9.]/g, '');
+                if (value.includes('.')) {
+                    const parts = value.split('.');
+                    if (parts[1].length > 2) {
+                        parts[1] = parts[1].substring(0, 2);
+                        value = parts.join('.');
+                    }
+                }
+                
+                // Mettre à jour la valeur
+                input.value = value;
+                
+                // Restaurer la position du curseur
+                input.setSelectionRange(start, end);
+            } else {
+                // Si la valeur n'est pas valide, la réinitialiser
+                input.value = '';
+            }
+        }
+        
+        // Appliquer le formatage aux champs de prix
+        const prixAchatInput = document.getElementById('{{ form.prix_achat.id_for_label }}');
+        const prixVenteInput = document.getElementById('{{ form.prix_vente.id_for_label }}');
+        
+        if (prixAchatInput) {
+            prixAchatInput.addEventListener('input', function() {
+                formatPrice(this);
+            });
+        }
+        
+        if (prixVenteInput) {
+            prixVenteInput.addEventListener('input', function() {
+                formatPrice(this);
+            });
+        }
+    });
+</script>
+{% endblock %}

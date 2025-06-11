@@ -1,0 +1,35 @@
+{% extends 'inventaire/base.html' %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">{% trans 'Confirmer la suppression' %}</h4>
+        </div>
+        <div class="card-body">
+            <p class="lead">
+                {% blocktrans with designation=produit.designation %}
+                Êtes-vous sûr de vouloir supprimer le produit "{{ designation }}" ?
+                {% endblocktrans %}
+            </p>
+            <p class="text-muted">
+                {% trans "Cette action est irréversible et supprimera également tous les mouvements de stock associés à ce produit." %}
+            </p>
+            
+            <div class="mt-4">
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-2"></i>{% trans 'Oui, supprimer' %}
+                    </button>
+                </form>
+                <a href="{% url 'inventaire:detail_produit' produit.pk %}" class="btn btn-secondary ms-2">
+                    <i class="fas fa-times me-2"></i>{% trans 'Annuler' %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,711 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
+from django.urls import reverse_lazy, reverse
+from django.contrib import messages
+from django.db.models import Sum, F, Q, Count, DecimalField
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from django.http import JsonResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+
+from .models import Produit, Categorie, Fournisseur, EntreeStock, SortieStock, Notification
+from .forms import (
+    ProduitForm, CategorieForm, FournisseurForm,
+    EntreeStockForm, SortieStockForm, RapportMouvementsForm
+)
+
+# Vues pour les produits
+class ProduitListView(LoginRequiredMixin, ListView):
+    model = Produit
+    template_name = 'stock/produits/liste.html'
+    context_object_name = 'produits'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = Produit.objects.select_related('categorie', 'fournisseur').order_by('designation')
+        search_query = self.request.GET.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(designation__icontains=search_query) |
+                Q(code__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = Categorie.objects.all()
+        context['fournisseurs'] = Fournisseur.objects.all()
+        context['title'] = _("Liste des produits")
+        return context
+
+class ProduitDetailView(LoginRequiredMixin, DetailView):
+    model = Produit
+    template_name = 'stock/produits/detail.html'
+    context_object_name = 'produit'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Détails du produit")
+        return context
+
+class ProduitCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Produit
+    form_class = ProduitForm
+    template_name = 'stock/produits/form.html'
+    permission_required = 'stock.add_produit'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Ajouter un produit")
+        context['submit_text'] = _("Enregistrer")
+        return context
+    
+    def form_valid(self, form):
+        form.instance.utilisateur = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, _("Le produit a été ajouté avec succès."))
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock:detail_produit', kwargs={'pk': self.object.pk})
+
+class ProduitUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = Produit
+    form_class = ProduitForm
+    template_name = 'stock/produits/form.html'
+    permission_required = 'stock.change_produit'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Modifier le produit")
+        context['submit_text'] = _("Mettre à jour")
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, _("Le produit a été mis à jour avec succès."))
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock:detail_produit', kwargs={'pk': self.object.pk})
+
+@login_required
+@permission_required('stock.delete_produit', raise_exception=True)
+def supprimer_produit(request, pk):
+    produit = get_object_or_404(Produit, pk=pk)
+    if request.method == 'POST':
+        try:
+            produit.delete()
+            messages.success(request, _("Le produit a été supprimé avec succès."))
+            return redirect('stock:liste_produits')
+        except Exception as e:
+            messages.error(request, _("Une erreur est survenue lors de la suppression du produit."))
+    return redirect('stock:detail_produit', pk=pk)
+
+# Vues pour les fournisseurs
+class FournisseurListView(LoginRequiredMixin, ListView):
+    model = Fournisseur
+    template_name = 'stock/fournisseurs/liste.html'
+    context_object_name = 'fournisseurs'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = Fournisseur.objects.all().order_by('nom')
+        search_query = self.request.GET.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(nom__icontains=search_query) |
+                Q(contact__icontains=search_query) |
+                Q(email__icontains=search_query)
+            )
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Liste des fournisseurs")
+        return context
+
+
+class FournisseurDetailView(LoginRequiredMixin, DetailView):
+    model = Fournisseur
+    template_name = 'stock/fournisseurs/detail.html'
+    context_object_name = 'fournisseur'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Détails du fournisseur")
+        return context
+
+
+class FournisseurCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Fournisseur
+    form_class = FournisseurForm
+    template_name = 'stock/fournisseurs/form.html'
+    permission_required = 'stock.add_fournisseur'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Ajouter un fournisseur")
+        context['submit_text'] = _("Enregistrer")
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, _("Le fournisseur a été ajouté avec succès."))
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock:detail_fournisseur', kwargs={'pk': self.object.pk})
+
+
+class FournisseurUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = Fournisseur
+    form_class = FournisseurForm
+    template_name = 'stock/fournisseurs/form.html'
+    permission_required = 'stock.change_fournisseur'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Modifier le fournisseur")
+        context['submit_text'] = _("Mettre à jour")
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, _("Le fournisseur a été mis à jour avec succès."))
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock:detail_fournisseur', kwargs={'pk': self.object.pk})
+
+
+@login_required
+@permission_required('stock.delete_fournisseur', raise_exception=True)
+def supprimer_fournisseur(request, pk):
+    fournisseur = get_object_or_404(Fournisseur, pk=pk)
+    if request.method == 'POST':
+        try:
+            fournisseur.delete()
+            messages.success(request, _("Le fournisseur a été supprimé avec succès."))
+        except Exception as e:
+            messages.error(
+                request, 
+                _("Impossible de supprimer ce fournisseur car il est lié à des produits ou des mouvements de stock.")
+            )
+    return redirect('stock:liste_fournisseurs')
+
+
+# Vues pour les catégories
+class CategorieListView(LoginRequiredMixin, ListView):
+    model = Categorie
+    template_name = 'stock/categories/liste.html'
+    context_object_name = 'categories'
+    
+    def get_queryset(self):
+        return Categorie.objects.annotate(
+            nb_produits=Count('produit')
+        ).order_by('nom')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Liste des catégories")
+        return context
+
+
+class CategorieCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Categorie
+    form_class = CategorieForm
+    template_name = 'stock/categories/form.html'
+    permission_required = 'stock.add_categorie'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Ajouter une catégorie")
+        context['submit_text'] = _("Enregistrer")
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, _("La catégorie a été ajoutée avec succès."))
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock:liste_categories')
+
+
+class CategorieUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = Categorie
+    form_class = CategorieForm
+    template_name = 'stock/categories/form.html'
+    permission_required = 'stock.change_categorie'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Modifier la catégorie")
+        context['submit_text'] = _("Mettre à jour")
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, _("La catégorie a été mise à jour avec succès."))
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock:liste_categories')
+
+
+@login_required
+@permission_required('stock.delete_categorie', raise_exception=True)
+def supprimer_categorie(request, pk):
+    categorie = get_object_or_404(Categorie, pk=pk)
+    if request.method == 'POST':
+        try:
+            categorie.delete()
+            messages.success(request, _("La catégorie a été supprimée avec succès."))
+        except Exception as e:
+            messages.error(request, _("Impossible de supprimer cette catégorie car elle est utilisée par des produits."))
+    return redirect('stock:liste_categories')
+
+# Vues pour les mouvements de stock
+class ListeEntreesView(LoginRequiredMixin, ListView):
+    model = EntreeStock
+    template_name = 'stock/mouvements/liste_entrees.html'
+    context_object_name = 'entrees'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = EntreeStock.objects.select_related('produit', 'fournisseur', 'utilisateur')
+        return queryset.order_by('-date')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Liste des entrées de stock")
+        return context
+
+class EntreeStockCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = EntreeStock
+    form_class = EntreeStockForm
+    template_name = 'stock/mouvements/entree_form.html'
+    permission_required = 'stock.add_entreestock'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Nouvelle entrée de stock")
+        context['submit_text'] = _("Enregistrer l'entrée")
+        return context
+    
+    def form_valid(self, form):
+        form.instance.utilisateur = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, _("L'entrée de stock a été enregistrée avec succès."))
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock:detail_entree', kwargs={'pk': self.object.pk})
+
+class EntreeStockDetailView(LoginRequiredMixin, DetailView):
+    model = EntreeStock
+    template_name = 'stock/mouvements/entree_detail.html'
+    context_object_name = 'entree'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Détails de l'entrée de stock")
+        return context
+
+# Vues pour les sorties de stock
+class ListeSortiesView(LoginRequiredMixin, ListView):
+    model = SortieStock
+    template_name = 'stock/mouvements/liste_sorties.html'
+    context_object_name = 'sorties'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = SortieStock.objects.select_related('produit', 'utilisateur')
+        return queryset.order_by('-date')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Liste des sorties de stock")
+        return context
+
+class SortieStockCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = SortieStock
+    form_class = SortieStockForm
+    template_name = 'stock/mouvements/sortie_form.html'
+    permission_required = 'stock.add_sortiestock'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Nouvelle sortie de stock")
+        context['submit_text'] = _("Enregistrer la sortie")
+        return context
+    
+    def form_valid(self, form):
+        form.instance.utilisateur = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, _("La sortie de stock a été enregistrée avec succès."))
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock:detail_sortie', kwargs={'pk': self.object.pk})
+
+class SortieStockDetailView(LoginRequiredMixin, DetailView):
+    model = SortieStock
+    template_name = 'stock/mouvements/sortie_detail.html'
+    context_object_name = 'sortie'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Détails de la sortie de stock")
+        return context
+
+
+@login_required
+@permission_required('stock.cancel_entreestock', raise_exception=True)
+def annuler_entree(request, pk):
+    """
+    Annule une entrée de stock et met à jour les quantités en conséquence.
+    """
+    entree = get_object_or_404(EntreeStock, pk=pk)
+    
+    # Vérifier si l'entrée n'est pas déjà annulée
+    if entree.annulee:
+        messages.warning(request, _("Cette entrée a déjà été annulée."))
+        return redirect('stock:detail_entree', pk=entree.pk)
+    
+    # Vérifier s'il y a assez de stock pour annuler
+    if entree.produit.quantite_stock < entree.quantite:
+        messages.error(
+            request,
+            _("Stock insuffisant pour annuler cette entrée. Stock actuel: %(stock)s, quantité à annuler: %(quantite)s") % {
+                'stock': entree.produit.quantite_stock,
+                'quantite': entree.quantite
+            }
+        )
+        return redirect('stock:detail_entree', pk=entree.pk)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Mettre à jour le statut de l'entrée
+                entree.annulee = True
+                entree.motif_annulation = request.POST.get('motif_annulation', '')
+                entree.utilisateur_annulation = request.user
+                entree.date_annulation = timezone.now()
+                entree.save()
+                
+                # Mettre à jour le stock du produit
+                produit = entree.produit
+                produit.quantite_stock -= entree.quantite
+                produit.save()
+                
+                messages.success(request, _("L'entrée a été annulée avec succès et le stock a été mis à jour."))
+                return redirect('stock:detail_entree', pk=entree.pk)
+                
+        except Exception as e:
+            messages.error(request, _("Une erreur est survenue lors de l'annulation: %s") % str(e))
+            return redirect('stock:detail_entree', pk=entree.pk)
+    
+    # Si la méthode n'est pas POST, afficher le formulaire de confirmation
+    return render(request, 'stock/mouvements/confirmer_annulation.html', {
+        'titre': _("Confirmer l'annulation de l'entrée"),
+        'message': _("Êtes-vous sûr de vouloir annuler cette entrée de stock ?"),
+        'objet': entree,
+        'type_objet': 'entree',
+    })
+
+
+@login_required
+@permission_required('stock.cancel_sortiestock', raise_exception=True)
+def annuler_sortie(request, pk):
+    """
+    Annule une sortie de stock et met à jour les quantités en conséquence.
+    """
+    sortie = get_object_or_404(SortieStock, pk=pk)
+    
+    # Vérifier si la sortie n'est pas déjà annulée
+    if sortie.annulee:
+        messages.warning(request, _("Cette sortie a déjà été annulée."))
+        return redirect('stock:detail_sortie', pk=sortie.pk)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # Mettre à jour le statut de la sortie
+                sortie.annulee = True
+                sortie.motif_annulation = request.POST.get('motif_annulation', '')
+                sortie.utilisateur_annulation = request.user
+                sortie.date_annulation = timezone.now()
+                sortie.save()
+                
+                # Mettre à jour le stock du produit
+                produit = sortie.produit
+                produit.quantite_stock += sortie.quantite
+                produit.save()
+                
+                messages.success(request, _("La sortie a été annulée avec succès et le stock a été mis à jour."))
+                return redirect('stock:detail_sortie', pk=sortie.pk)
+                
+        except Exception as e:
+            messages.error(request, _("Une erreur est survenue lors de l'annulation: %s") % str(e))
+            return redirect('stock:detail_sortie', pk=sortie.pk)
+    
+    # Si la méthode n'est pas POST, afficher le formulaire de confirmation
+    return render(request, 'stock/mouvements/confirmer_annulation.html', {
+        'titre': _("Confirmer l'annulation de la sortie"),
+        'message': _("Êtes-vous sûr de vouloir annuler cette sortie de stock ?"),
+        'objet': sortie,
+        'type_objet': 'sortie',
+    })
+
+# Vues pour les rapports
+@login_required
+def rapport_stock_faible(request):
+    """
+    Affiche la liste des produits dont le stock est en dessous du seuil d'alerte.
+    """
+    # Récupérer les produits dont le stock est en dessous du seuil d'alerte
+    produits_en_alerte = Produit.objects.filter(
+        quantite_stock__lte=F('seuil_alerte'),
+        actif=True
+    ).order_by('quantite_stock')
+    
+    # Calculer les statistiques
+    total_produits = Produit.objects.filter(actif=True).count()
+    produits_alerte_count = produits_en_alerte.count()
+    
+    # Options de seuil pour le filtre
+    seuil_options = [
+        {'value': 0, 'label': _('Tous les produits')},
+        {'value': 1, 'label': _('Stock critique (0)')},
+        {'value': 5, 'label': '5'},
+        {'value': 10, 'label': '10'},
+        {'value': 20, 'label': '20'},
+    ]
+    
+    # Appliquer le filtre de seuil si spécifié
+    seuil = request.GET.get('seuil')
+    if seuil and seuil.isdigit():
+        seuil = int(seuil)
+        if seuil > 0:  # 0 signifie tous les produits
+            produits_en_alerte = produits_en_alerte.filter(quantite_stock__lte=seuil)
+    else:
+        seuil = 0
+    
+    # Pagination
+    paginator = Paginator(produits_en_alerte, 25)  # 25 produits par page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'title': _("Rapport de stock faible"),
+        'produits': page_obj,
+        'total_produits': total_produits,
+        'produits_alerte_count': produits_alerte_count,
+        'seuil_options': seuil_options,
+        'seuil_actuel': int(seuil) if seuil else 0,
+    }
+    
+    # Gestion du format d'export
+    format_export = request.GET.get('format')
+    if format_export == 'pdf':
+        return generer_pdf_rapport_stock_faible(produits_en_alerte, context)
+    elif format_export == 'excel':
+        return generer_excel_rapport_stock_faible(produits_en_alerte, context)
+    
+    return render(request, 'stock/rapports/stock_faible.html', context)
+
+
+def generer_pdf_rapport_stock_faible(queryset, context):
+    """Génère un PDF du rapport de stock faible."""
+    # Cette fonction nécessite reportlab ou weasyprint pour générer le PDF
+    # Implémentation simplifiée - à compléter selon vos besoins
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+    
+    html_string = render_to_string('stock/rapports/stock_faible_pdf.html', context)
+    
+    # Utilisation de WeasyPrint pour générer le PDF (à installer : pip install WeasyPrint)
+    # from weasyprint import HTML
+    # pdf_file = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+    
+    # En attendant, on retourne le HTML
+    response = HttpResponse(html_string, content_type='text/html')
+    response['Content-Disposition'] = 'inline; filename=rapport_stock_faible.html'
+    return response
+
+
+def generer_excel_rapport_stock_faible(queryset, context):
+    """Génère un fichier Excel du rapport de stock faible."""
+    # Cette fonction nécessite openpyxl (pip install openpyxl)
+    # Implémentation simplifiée - à compléter selon vos besoins
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.writer.excel import save_virtual_workbook
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Stock Faible"
+    
+    # En-têtes
+    headers = [
+        _('Code'), 
+        _('Désignation'), 
+        _('Catégorie'), 
+        _('Stock actuel'), 
+        _('Seuil d\'alerte'),
+        _('Statut')
+    ]
+    ws.append(headers)
+    
+    # Données
+    for produit in queryset:
+        ws.append([
+            produit.code,
+            produit.designation,
+            str(produit.categorie),
+            produit.quantite_stock,
+            produit.seuil_alerte,
+            _('Rupture') if produit.quantite_stock == 0 else _('Stock faible')
+        ])
+    
+    # Créer la réponse
+    response = HttpResponse(
+        content=save_virtual_workbook(wb),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=rapport_stock_faible.xlsx'
+    return response
+
+
+@login_required
+@permission_required('stock.view_entreestock', raise_exception=True)
+def rapport_mouvements(request):
+    """
+    Affiche un rapport des mouvements de stock (entrées et sorties) selon les filtres sélectionnés.
+    """
+    form = RapportMouvementsForm(request.GET or None)
+    mouvements = []
+    total_entrees = 0
+    total_sorties = 0
+    
+    if form.is_valid():
+        date_debut = form.cleaned_data.get('date_debut')
+        date_fin = form.cleaned_data.get('date_fin')
+        produit = form.cleaned_data.get('produit')
+        
+        # Filtrer les entrées et sorties en fonction des critères
+        entrees = EntreeStock.objects.all()
+        sorties = SortieStock.objects.all()
+        
+        if date_debut:
+            entrees = entrees.filter(date_creation__date__gte=date_debut)
+            sorties = sorties.filter(date_creation__date__gte=date_debut)
+        if date_fin:
+            date_fin_plus_1 = date_fin + timezone.timedelta(days=1)
+            entrees = entrees.filter(date_creation__date__lt=date_fin_plus_1)
+            sorties = sorties.filter(date_creation__date__lt=date_fin_plus_1)
+        if produit:
+            entrees = entrees.filter(produit=produit)
+            sorties = sorties.filter(produit=produit)
+        
+        # Préparer les données pour l'affichage
+        for entree in entrees:
+            montant = entree.quantite * entree.prix_unitaire
+            mouvements.append({
+                'date': entree.date_creation,
+                'type': 'Entrée',
+                'produit': entree.produit,
+                'quantite': entree.quantite,
+                'prix_unitaire': entree.prix_unitaire,
+                'montant_total': montant,
+                'reference': entree.numero_bon or '-',
+                'utilisateur': entree.utilisateur,
+            })
+            total_entrees += montant
+        
+        for sortie in sorties:
+            prix_unitaire = sortie.prix_unitaire or 0
+            montant = sortie.quantite * prix_unitaire
+            mouvements.append({
+                'date': sortie.date_creation,
+                'type': 'Sortie',
+                'produit': sortie.produit,
+                'quantite': sortie.quantite,
+                'prix_unitaire': prix_unitaire,
+                'montant_total': montant,
+                'reference': sortie.numero_bon or '-',
+                'utilisateur': sortie.utilisateur,
+            })
+            total_sorties += montant
+        
+        # Trier par date (du plus récent au plus ancien)
+        mouvements.sort(key=lambda x: x['date'], reverse=True)
+    
+    context = {
+        'title': _('Rapport des mouvements de stock'),
+        'form': form,
+        'mouvements': mouvements,
+        'total_entrees': total_entrees,
+        'total_sorties': total_sorties,
+        'total_general': total_entrees - total_sorties,
+    }
+    return render(request, 'stock/rapports/mouvements.html', context)
+
+
+# Vue d'accueil
+def accueil(request):
+    # Statistiques de base
+    total_produits = Produit.objects.count()
+    produits_en_alerte = Produit.objects.filter(quantite_stock__lte=F('seuil_alerte'))
+    total_produits_alerte = produits_en_alerte.count()
+    
+    # Calcul de la valeur totale du stock (en utilisant le prix de vente)
+    valeur_stock = Produit.objects.aggregate(
+        total=Sum(F('quantite_stock') * F('prix_vente'))
+    )['total'] or 0
+    
+    # Derniers mouvements
+    dernieres_entrees = EntreeStock.objects.select_related('produit').order_by('-date')[:5]
+    dernieres_sorties = SortieStock.objects.select_related('produit').order_by('-date')[:5]
+    
+    # Combiner et trier les entrées et sorties
+    derniers_mouvements = list(dernieres_entrees) + list(dernieres_sorties)
+    derniers_mouvements.sort(key=lambda x: x.date, reverse=True)
+    
+    # Statistiques pour les 7 derniers jours
+    date_limite = timezone.now() - timezone.timedelta(days=7)
+    mouvements_7j = (EntreeStock.objects.filter(date__gte=date_limite).count() +
+                     SortieStock.objects.filter(date__gte=date_limite).count())
+    
+    # Récupérer les notifications non lues
+    notifications_non_lues = []
+    if request.user.is_authenticated:
+        notifications_non_lues = Notification.objects.filter(
+            utilisateur=request.user,
+            vue=False
+        ).order_by('-date_creation')[:5]
+
+    context = {
+        'title': _('Tableau de bord'),
+        'stats': {
+            'total_produits': total_produits,
+            'produits_en_alerte': total_produits_alerte,
+            'valeur_totale': valeur_stock,
+            'mouvements_7j': mouvements_7j,
+            'total_mouvements': len(derniers_mouvements),
+        },
+        'produits_alerte_liste': produits_en_alerte.order_by('quantite_stock')[:5],
+        'derniers_mouvements': derniers_mouvements[:10],
+        'dernieres_entrees': dernieres_entrees,
+        'dernieres_sorties': dernieres_sorties,
+        'notifications': notifications_non_lues,
+    }
+    return render(request, 'stock/accueil.html', context)

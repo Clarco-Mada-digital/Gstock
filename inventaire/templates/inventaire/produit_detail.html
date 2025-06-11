@@ -1,0 +1,211 @@
+{% extends 'inventaire/base.html' %}
+{% load static %}
+{% load math_filters %}
+
+{% block title %}{{ produit.designation }} - Détails - {{ block.super }}{% endblock %}
+
+{% block header %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'inventaire:liste_produits' %}">Produits</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ produit.designation|truncatechars:30 }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">{{ produit.designation }}</h1>
+    <div class="btn-group">
+        <a href="{% url 'inventaire:modifier_produit' produit.id %}" class="btn btn-outline-primary">
+            <i class="fas fa-edit me-1"></i> Modifier
+        </a>
+        <a href="{% url 'inventaire:entree_stock' %}?produit={{ produit.id }}" class="btn btn-success">
+            <i class="fas fa-plus me-1"></i> Entrée
+        </a>
+        <a href="{% url 'inventaire:sortie_stock' %}?produit={{ produit.id }}" class="btn btn-danger">
+            <i class="fas fa-minus me-1"></i> Sortie
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Informations générales</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Code :</div>
+                    <div class="col-sm-8">{{ produit.code }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Catégorie :</div>
+                    <div class="col-sm-8">
+                        {% if produit.categorie %}
+                            <span class="badge bg-primary">{{ produit.categorie.nom }}</span>
+                        {% else %}
+                            <span class="text-muted">Non définie</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Description :</div>
+                    <div class="col-sm-8">
+                        {{ produit.description|default:"<span class='text-muted'>Aucune description</span>"|linebreaksbr }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Date de création :</div>
+                    <div class="col-sm-8">{{ produit.date_creation|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Dernière modification :</div>
+                    <div class="col-sm-8">{{ produit.date_modification|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4 fw-bold">Statut :</div>
+                    <div class="col-sm-8">
+                        {% if produit.actif %}
+                            <span class="badge bg-success">Actif</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactif</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Stock et prix</h5>
+                <span class="badge {% if produit.en_alerte %}bg-danger{% else %}bg-success{% endif %}">
+                    {{ produit.quantite_stock|floatformat:2 }} {{ produit.unite }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Niveau de stock</span>
+                        <span>{{ produit.quantite_stock|floatformat:2 }} / {{ produit.seuil_alerte|default:0|floatformat:2 }} {{ produit.unite }}</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        {% with ratio=produit.quantite_stock|div:produit.seuil_alerte|mul:100|default:0 %}
+                        <div class="progress-bar {% if ratio < 30 %}bg-danger{% elif ratio < 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ ratio|floatformat:0 }}%" 
+                             aria-valuenow="{{ ratio|floatformat:0 }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                        {% endwith %}
+                    </div>
+                    <div class="form-text">
+                        {% if produit.en_alerte %}
+                            <i class="fas fa-exclamation-triangle text-danger me-1"></i>
+                            Stock en alerte (seuil: {{ produit.seuil_alerte }} {{ produit.unite }})
+                        {% else %}
+                            Stock suffisant (seuil: {{ produit.seuil_alerte }} {{ produit.unite }})
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Prix d'achat</h6>
+                                <h4 class="mb-0">{{ produit.prix_achat|default:"-"|floatformat:2 }} €</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Prix de vente</h6>
+                                <h4 class="mb-0">{{ produit.prix_vente|default:"-"|floatformat:2 }} €</h4>
+                                {% if produit.prix_achat and produit.prix_vente %}
+                                    {% with marge=produit.prix_vente|sub:produit.prix_achat pourcentage=produit.prix_vente|div:produit.prix_achat|sub:1|mul:100|floatformat:2 %}
+                                    <small class="text-{% if marge > 0 %}success{% else %}danger{% endif %}">
+                                        Marge: {{ marge|floatformat:2 }}€ ({{ pourcentage }}%)
+                                    </small>
+                                    {% endwith %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>
+                            <small>
+                                Valeur totale du stock: 
+                                <strong>
+                                    {% if produit.prix_achat %}
+                                        {{ produit.prix_achat|mul:produit.quantite_stock|floatformat:2 }} €
+                                    {% else %}
+                                        Non définie
+                                    {% endif %}
+                                </strong>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Derniers mouvements</h5>
+        <a href="{% url 'inventaire:historique' %}?produit={{ produit.id }}" class="btn btn-sm btn-outline-primary">
+            Voir tout l'historique <i class="fas fa-arrow-right ms-1"></i>
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Quantité</th>
+                        <th>Utilisateur</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mouvement in mouvements %}
+                    <tr>
+                        <td>{{ mouvement.date_mouvement|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if mouvement.type_mouvement == 'entree' %}
+                                <span class="badge bg-success">Entrée</span>
+                            {% else %}
+                                <span class="badge bg-danger">Sortie</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ mouvement.quantite }} {{ produit.unite }}</td>
+                        <td>{{ mouvement.utilisateur.username|default:"Système" }}</td>
+                        <td>{{ mouvement.notes|default:"-"|truncatechars:30 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p class="mb-0">Aucun mouvement enregistré pour ce produit</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

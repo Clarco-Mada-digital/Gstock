@@ -1,0 +1,387 @@
+{% extends 'inventaire/base.html' %}
+{% load widget_tweaks %}
+{% load custom_filters %}
+
+{% block title %}Historique des mouvements - {{ block.super }}{% endblock %}
+
+{% block header %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'inventaire:accueil' %}">Accueil</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Historique des mouvements</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">
+        <i class="fas fa-history me-2"></i>Historique des mouvements
+    </h1>
+    <div>
+        <button type="button" class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#filtresModal">
+            <i class="fas fa-filter me-1"></i> Filtres
+        </button>
+        <a href="{% url 'inventaire:exporter_historique' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+           class="btn btn-outline-primary">
+            <i class="fas fa-file-export me-1"></i> Exporter
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Produit</th>
+                        <th class="text-end">Quantité</th>
+                        <th>Utilisateur</th>
+                        <th>Notes</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mouvement in mouvements %}
+                    <tr>
+                        <td>{{ mouvement.date_mouvement|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if mouvement.type_mouvement == 'entree' %}
+                                <span class="badge bg-success">Entrée</span>
+                            {% else %}
+                                <span class="badge bg-danger">Sortie</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'inventaire:detail_produit' mouvement.produit.id %}" class="text-decoration-none">
+                                {{ mouvement.produit.designation }}
+                            </a>
+                            <div class="text-muted small">{{ mouvement.produit.code }}</div>
+                        </td>
+                        <td class="text-end">{{ mouvement.quantite|floatformat:2 }} {{ mouvement.produit.unite }}</td>
+                        <td>{{ mouvement.utilisateur.username|default:"Système" }}</td>
+                        <td>{{ mouvement.notes|default:"-"|truncatechars:30 }}</td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-sm" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#annulerMouvement{{ mouvement.id }}"
+                                        title="Annuler ce mouvement">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Modal de confirmation d'annulation -->
+                            <div class="modal fade" id="annulerMouvement{{ mouvement.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Confirmer l'annulation</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Êtes-vous sûr de vouloir annuler ce mouvement ?</p>
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                Cette action est irréversible et ajustera automatiquement le stock du produit.
+                                            </div>
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <th>Produit :</th>
+                                                    <td>{{ mouvement.produit.designation }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Type :</th>
+                                                    <td>
+                                                        {% if mouvement.type_mouvement == 'entree' %}
+                                                            <span class="badge bg-success">Entrée</span> (sera retiré du stock)
+                                                        {% else %}
+                                                            <span class="badge bg-danger">Sortie</span> (sera ajouté au stock)
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Quantité :</th>
+                                                    <td>{{ mouvement.quantite }} {{ mouvement.produit.unite }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Date :</th>
+                                                    <td>{{ mouvement.date_mouvement|date:"d/m/Y H:i" }}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                <i class="fas fa-times me-1"></i> Annuler
+                                            </button>
+                                            <form method="post" action="{% url 'inventaire:annuler_mouvement' mouvement.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="fas fa-undo me-1"></i> Confirmer l'annulation
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p class="mb-0">Aucun mouvement trouvé</p>
+                            {% if request.GET %}
+                                <a href="{% url 'inventaire:historique' %}" class="btn btn-sm btn-outline-primary mt-3">
+                                    <i class="fas fa-undo me-1"></i> Réinitialiser les filtres
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    {% if mouvements.has_other_pages %}
+    <div class="card-footer bg-white">
+        <nav aria-label="Pagination">
+            <ul class="pagination justify-content-center mb-0">
+                {% if mouvements.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% url_replace request 'page' 1 %}" aria-label="Première">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% url_replace request 'page' mouvements.previous_page_number %}" aria-label="Précédent">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;&laquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+                {% endif %}
+
+                {% for i in page_range|default:mouvements.paginator.get_elided_page_range %}
+                    {% if mouvements.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                    {% else %}
+                        {% if i == mouvements.paginator.ELLIPSIS %}
+                            <li class="page-item disabled">
+                                <span class="page-link">{{ i }}</span>
+                            </li>
+                        {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% url_replace request 'page' i %}">{{ i }}</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if mouvements.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% url_replace request 'page' mouvements.next_page_number %}" aria-label="Suivant">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% url_replace request 'page' mouvements.paginator.num_pages %}" aria-label="Dernière">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;&raquo;</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Filtres -->
+<div class="modal fade" id="filtresModal" tabindex="-1" aria-labelledby="filtresModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="get" id="filtresForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="filtresModalLabel">
+                        <i class="fas fa-filter me-2"></i>Filtrer les résultats
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="produit" class="form-label">Produit</label>
+                        <select name="produit" id="produit" class="form-select">
+                            <option value="">Tous les produits</option>
+                            {% for p in produits %}
+                            <option value="{{ p.id }}" {% if request.GET.produit == p.id|stringformat:'i' %}selected{% endif %}>
+                                {{ p.designation }} ({{ p.code }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="type_mouvement" class="form-label">Type de mouvement</label>
+                        <select name="type_mouvement" id="type_mouvement" class="form-select">
+                            <option value="">Tous les types</option>
+                            <option value="entree" {% if request.GET.type_mouvement == 'entree' %}selected{% endif %}>Entrées en stock</option>
+                            <option value="sortie" {% if request.GET.type_mouvement == 'sortie' %}selected{% endif %}>Sorties de stock</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date_debut" class="form-label">Date de début</label>
+                                <input type="date" class="form-control" id="date_debut" name="date_debut" 
+                                       value="{{ request.GET.date_debut|default:'' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date_fin" class="form-label">Date de fin</label>
+                                <input type="date" class="form-control" id="date_fin" name="date_fin" 
+                                       value="{{ request.GET.date_fin|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="utilisateur" class="form-label">Utilisateur</label>
+                        <select name="utilisateur" id="utilisateur" class="form-select">
+                            <option value="">Tous les utilisateurs</option>
+                            {% for user in utilisateurs %}
+                            <option value="{{ user.id }}" {% if request.GET.utilisateur == user.id|stringformat:'i' %}selected{% endif %}>
+                                {{ user.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tri" class="form-label">Trier par</label>
+                        <select name="tri" id="tri" class="form-select">
+                            <option value="-date_mouvement" {% if request.GET.tri == '-date_mouvement' or not request.GET.tri %}selected{% endif %}>
+                                Date (plus récent d'abord)
+                            </option>
+                            <option value="date_mouvement" {% if request.GET.tri == 'date_mouvement' %}selected{% endif %}>
+                                Date (plus ancien d'abord)
+                            </option>
+                            <option value="produit" {% if request.GET.tri == 'produit' %}selected{% endif %}>
+                                Produit (A-Z)
+                            </option>
+                            <option value="-produit" {% if request.GET.tri == '-produit' %}selected{% endif %}>
+                                Produit (Z-A)
+                            </option>
+                            <option value="quantite" {% if request.GET.tri == 'quantite' %}selected{% endif %}>
+                                Quantité (croissant)
+                            </option>
+                            <option value="-quantite" {% if request.GET.tri == '-quantite' %}selected{% endif %}>
+                                Quantité (décroissant)
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="uniquement_annulables" 
+                               name="uniquement_annulables" {% if request.GET.uniquement_annulables %}checked{% endif %}>
+                        <label class="form-check-label" for="uniquement_annulables">
+                            Afficher uniquement les mouvements annulables
+                        </label>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i> Seuls les mouvements récents peuvent être annulés.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="{% url 'inventaire:historique' %}" class="btn btn-outline-secondary me-auto">
+                        <i class="fas fa-undo me-1"></i> Réinitialiser
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Fermer
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check me-1"></i> Appliquer les filtres
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation des sélecteurs de date avec des valeurs par défaut si vides
+    const aujourdhui = new Date();
+    const ilYaUnMois = new Date();
+    ilYaUnMois.setMonth(ilYaUnMois.getMonth() - 1);
+    
+    // Mettre en place les valeurs par défaut pour les dates si elles sont vides
+    const dateDebutInput = document.getElementById('date_debut');
+    const dateFinInput = document.getElementById('date_fin');
+    
+    if (dateDebutInput && !dateDebutInput.value) {
+        dateDebutInput.valueAsDate = ilYaUnMois;
+    }
+    
+    if (dateFinInput && !dateFinInput.value) {
+        dateFinInput.valueAsDate = aujourdhui;
+    }
+    
+    // Validation des dates (date de fin après date de début)
+    const filtreForm = document.getElementById('filtresForm');
+    if (filtreForm) {
+        filtreForm.addEventListener('submit', function(e) {
+            if (dateDebutInput.value && dateFinInput.value) {
+                const dateDebut = new Date(dateDebutInput.value);
+                const dateFin = new Date(dateFinInput.value);
+                
+                if (dateDebut > dateFin) {
+                    e.preventDefault();
+                    alert('La date de fin doit être postérieure à la date de début.');
+                    return false;
+                }
+                
+                // Vérifier que l'écart ne dépasse pas 1 an pour des raisons de performance
+                const unAnEnMs = 365 * 24 * 60 * 60 * 1000;
+                if ((dateFin - dateDebut) > unAnEnMs) {
+                    if (!confirm('La période sélectionnée dépasse un an. Cela peut affecter les performances. Souhaitez-vous continuer ?')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+            }
+            return true;
+        });
+    }
+    
+    // Initialisation des tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

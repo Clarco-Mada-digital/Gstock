@@ -1,0 +1,183 @@
+{% extends 'inventaire/base_clean.html' %}
+
+{% load static %}
+
+{% block title %}Connexion - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 col-xl-5">
+            <div class="card shadow-sm">
+                <div class="card-body p-4 p-sm-5">
+                    <!-- En-tête avec logo -->
+                    <div class="text-center mb-4">
+                        <img src="{% static 'inventaire/img/logo.png' %}" alt="Logo" class="mb-3" style="height: 80px;">
+                        <h2 class="h4 mb-0">Gestion de Stock</h2>
+                        <p class="text-muted">Veuillez vous connecter pour continuer</p>
+                    </div>
+
+                    <!-- Messages d'erreur -->
+                    {% if form.errors %}
+                    <div class="alert alert-danger" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <div>
+                                <strong>Erreur de connexion</strong>
+                                <p class="mb-0">Votre nom d'utilisateur et/ou votre mot de passe est incorrect.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if next %}
+                        {% if user.is_authenticated %}
+                        <div class="alert alert-warning" role="alert">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <div>
+                                    Votre compte n'a pas accès à cette page. Pour continuer, veuillez vous connecter avec un compte qui y a accès.
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info" role="alert">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <div>Veuillez vous connecter pour voir cette page.</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- Formulaire de connexion -->
+                    <form method="post" action="{% url 'login' %}" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                        
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">
+                                <i class="fas fa-user me-1"></i>Nom d'utilisateur
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" name="username" id="id_username" 
+                                       class="form-control form-control-lg" 
+                                       placeholder="Entrez votre nom d'utilisateur" 
+                                       required autofocus>
+                                <div class="invalid-feedback">
+                                    Veuillez entrer votre nom d'utilisateur.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label for="id_password" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>Mot de passe
+                                </label>
+                                <a href="{% url 'password_reset' %}" class="small text-decoration-none">
+                                    Mot de passe oublié ?
+                                </a>
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" name="password" id="id_password" 
+                                       class="form-control form-control-lg" 
+                                       placeholder="Entrez votre mot de passe" 
+                                       required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button" 
+                                        data-bs-toggle="tooltip" title="Afficher/Masquer">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <div class="invalid-feedback">
+                                    Veuillez entrer votre mot de passe.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mb-4">
+                            <button class="btn btn-primary btn-lg" type="submit">
+                                <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+                            </button>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="mb-0">
+                                Nouveau sur la plateforme ? 
+                                <a href="{% url 'signup' %}" class="text-decoration-none">
+                                    Créer un compte
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Informations supplémentaires -->
+            <div class="text-center mt-4">
+                <p class="text-muted small mb-0">
+                    &copy; {% now "Y" %} Gestion de Stock. Tous droits réservés.
+                    <br>
+                    <a href="#" class="text-muted text-decoration-none">Conditions d'utilisation</a> • 
+                    <a href="#" class="text-muted text-decoration-none">Politique de confidentialité</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Activation des tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Fonction pour afficher/masquer le mot de passe
+    document.querySelectorAll('.toggle-password').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const passwordInput = this.parentElement.querySelector('input');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+            
+            // Mettre à jour le tooltip
+            const tooltip = bootstrap.Tooltip.getInstance(this);
+            if (tooltip) {
+                tooltip.hide();
+                this.setAttribute('title', passwordInput.type === 'password' ? 'Afficher' : 'Masquer');
+                tooltip._config.title = this.getAttribute('title');
+                tooltip.update();
+            }
+        });
+    });
+
+    // Validation du formulaire
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+
+    // Focus sur le champ de nom d'utilisateur au chargement
+    document.getElementById('id_username')?.focus();
+});
+</script>
+{% endblock %}

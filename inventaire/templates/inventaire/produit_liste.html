@@ -1,0 +1,257 @@
+{% extends 'inventaire/base.html' %}
+{% load static %}
+{% load math_filters %}
+
+{% block title %}Liste des produits - {{ block.super }}{% endblock %}
+
+{% block header %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Liste des produits</h1>
+    <a href="{% url 'inventaire:ajouter_produit' %}" class="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 focus:bg-primary-700 active:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition ease-in-out duration-150">
+        <i class="fas fa-plus mr-2"></i> Ajouter un produit
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <!-- Filtres -->
+    <div class="p-4 border-b border-gray-200">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Rechercher un produit...">
+            </div>
+            
+            <div>
+                <select id="filterCategorie" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                    <option value="">Toutes les catégories</option>
+                    {% for categorie in categories %}
+                    <option value="{{ categorie.id }}" {% if categorie.id == request.GET.categorie|add:'0' %}selected{% endif %}>
+                        {{ categorie.nom }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <select id="filterStock" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                    <option value="">Tous les produits</option>
+                    <option value="alerte" {% if request.GET.stock == 'alerte' %}selected{% endif %}>En alerte de stock</option>
+                    <option value="disponible" {% if request.GET.stock == 'disponible' %}selected{% endif %}>En stock</option>
+                    <option value="rupture" {% if request.GET.stock == 'rupture' %}selected{% endif %}>En rupture</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tableau des produits -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" id="productsTable">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Désignation</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Prix d'achat</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Prix de vente</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for produit in produits %}
+                <tr class="{% if produit.en_alerte %}bg-yellow-50{% endif %} hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ produit.code }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <a href="{% url 'inventaire:detail_produit' produit.id %}" class="text-sm font-medium text-gray-900 hover:text-primary-600">
+                                {{ produit.designation|truncatechars:30 }}
+                            </a>
+                            {% if produit.en_alerte %}
+                            <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Alerte
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ produit.categorie.nom|default:"-" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center justify-end">
+                            <span class="text-sm text-gray-900 mr-3">{{ produit.quantite_stock|floatformat:2 }} {{ produit.unite }}</span>
+                            <div class="w-24 bg-gray-200 rounded-full h-1.5">
+                                {% with ratio=produit.quantite_stock|div:produit.seuil_alerte|mul:100|default:0 %}
+                                <div class="h-1.5 rounded-full {% if ratio < 50 %}bg-red-500{% elif ratio < 100 %}bg-yellow-500{% else %}bg-green-500{% endif %}" 
+                                     style="width: {{ ratio|floatformat:0|default:0 }}%">
+                                </div>
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {{ produit.prix_achat|default:"-"|floatformat:2 }} €
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {{ produit.prix_vente|default:"-"|floatformat:2 }} €
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex justify-end space-x-1">
+                            <a href="{% url 'inventaire:modifier_produit' produit.id %}" 
+                               class="text-primary-600 hover:text-primary-900 p-1 rounded-full hover:bg-gray-100"
+                               title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'inventaire:entree_stock' %}?produit={{ produit.id }}" 
+                               class="text-green-600 hover:text-green-900 p-1 rounded-full hover:bg-gray-100"
+                               title="Entrée en stock">
+                                <i class="fas fa-plus"></i>
+                            </a>
+                            <a href="{% url 'inventaire:sortie_stock' %}?produit={{ produit.id }}" 
+                               class="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-gray-100"
+                               title="Sortie de stock">
+                                <i class="fas fa-minus"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center">
+                        <div class="text-gray-400">
+                            <i class="fas fa-box-open text-4xl mb-3"></i>
+                            <p class="text-sm font-medium">Aucun produit trouvé</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if produits.has_other_pages %}
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Affichage de <span class="font-medium">{{ produits.start_index }}</span> à <span class="font-medium">{{ produits.end_index }}</span> sur <span class="font-medium">{{ produits.paginator.count }}</span> résultats
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if produits.has_previous %}
+                    <a href="?page={{ produits.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.categorie %}&categorie={{ request.GET.categorie }}{% endif %}{% if request.GET.stock %}&stock={{ request.GET.stock }}{% endif %}" 
+                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">Précédent</span>
+                        <i class="fas fa-chevron-left h-5 w-5"></i>
+                    </a>
+                    {% else %}
+                    <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-300 cursor-not-allowed">
+                        <span class="sr-only">Précédent</span>
+                        <i class="fas fa-chevron-left h-5 w-5"></i>
+                    </span>
+                    {% endif %}
+                    
+                    {% for i in produits.paginator.page_range %}
+                        {% if produits.number == i %}
+                        <span aria-current="page" class="z-10 bg-primary-50 border-primary-500 text-primary-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                            {{ i }}
+                        </span>
+                        {% else %}
+                        <a href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.categorie %}&categorie={{ request.GET.categorie }}{% endif %}{% if request.GET.stock %}&stock={{ request.GET.stock }}{% endif %}" 
+                           class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                            {{ i }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if produits.has_next %}
+                    <a href="?page={{ produits.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.categorie %}&categorie={{ request.GET.categorie }}{% endif %}{% if request.GET.stock %}&stock={{ request.GET.stock }}{% endif %}" 
+                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">Suivant</span>
+                        <i class="fas fa-chevron-right h-5 w-5"></i>
+                    </a>
+                    {% else %}
+                    <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-300 cursor-not-allowed">
+                        <span class="sr-only">Suivant</span>
+                        <i class="fas fa-chevron-right h-5 w-5"></i>
+                    </span>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtrage côté client pour la recherche instantanée
+    const searchInput = document.getElementById('searchInput');
+    const productsTable = document.getElementById('productsTable');
+    const rows = productsTable ? productsTable.getElementsByTagName('tr') : [];
+    
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.getElementsByTagName('td');
+                let showRow = false;
+                
+                for (let j = 0; j < cells.length; j++) {
+                    const cell = cells[j];
+                    if (cell) {
+                        const text = cell.textContent || cell.innerText;
+                        if (text.toLowerCase().indexOf(filter) > -1) {
+                            showRow = true;
+                            break;
+                        }
+                    }
+                }
+                
+                row.style.display = showRow ? '' : 'none';
+            }
+        });
+    }
+    
+    // Gestion des filtres
+    const filterCategorie = document.getElementById('filterCategorie');
+    const filterStock = document.getElementById('filterStock');
+    
+    function updateFilters() {
+        const params = new URLSearchParams(window.location.search);
+        
+        if (filterCategorie && filterCategorie.value) {
+            params.set('categorie', filterCategorie.value);
+        } else {
+            params.delete('categorie');
+        }
+        
+        if (filterStock && filterStock.value) {
+            params.set('stock', filterStock.value);
+        } else {
+            params.delete('stock');
+        }
+        
+        // Reset à la première page lors du changement de filtre
+        params.delete('page');
+        
+        window.location.href = window.location.pathname + '?' + params.toString();
+    }
+    
+    if (filterCategorie) {
+        filterCategorie.addEventListener('change', updateFilters);
+    }
+    
+    if (filterStock) {
+        filterStock.addEventListener('change', updateFilters);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,622 @@
+{% extends 'stock/base.html' %}
+{% load humanize static %}
+{# Temporairement désactivé pour débogage #}
+
+{% block extra_head %}
+<style>
+    .stat-card {
+        @apply bg-white rounded-lg shadow-md p-6 relative overflow-hidden transition-all duration-300 hover:shadow-lg;
+    }
+    .card-gradient-primary { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+    .card-gradient-success { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); }
+    .card-gradient-warning { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); }
+    .card-gradient-info { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); }
+    .stat-card i { @apply text-3xl mb-4 text-white; }
+    .stat-card h3 { @apply text-2xl font-bold text-white mb-1; }
+    .stat-card p { @apply text-white text-opacity-90; }
+    
+    .list-card { @apply bg-white rounded-lg shadow-md overflow-hidden; }
+    .card-header { @apply px-6 py-4 border-b border-gray-200 flex justify-between items-center; }
+    .card-header h3 { @apply text-lg font-medium text-gray-900; }
+    .card-body { @apply p-6; }
+    
+    .table-container { @apply overflow-x-auto; }
+    table { @apply min-w-full divide-y divide-gray-200; }
+    th { @apply px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider; }
+    td { @apply px-6 py-4 whitespace-nowrap text-sm; }
+    tr.list-item { @apply hover:bg-gray-50 transition-colors; }
+    
+    .btn {
+        @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors;
+    }
+    .btn-primary { @apply bg-blue-600 hover:bg-blue-700 focus:ring-blue-500; }
+    .btn-success { @apply bg-green-600 hover:bg-green-700 focus:ring-green-500; }
+    .btn-warning { @apply bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500; }
+    .btn-danger { @apply bg-red-600 hover:bg-red-700 focus:ring-red-500; }
+    .btn-sm { @apply px-3 py-1.5 text-xs; }
+    .btn-outline-primary { @apply border border-blue-600 text-blue-600 bg-white hover:bg-blue-50; }
+    
+    .badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    }
+    .badge-success { @apply bg-green-100 text-green-800; }
+    .badge-warning { @apply bg-yellow-100 text-yellow-800; }
+    .badge-danger { @apply bg-red-100 text-red-800; }
+    
+    .chart-card { @apply bg-white rounded-lg shadow-md p-6; }
+    .period-selector { @apply inline-flex rounded-md shadow-sm; }
+    .period-btn {
+        @apply px-4 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500;
+    }
+    .period-btn:first-child { @apply rounded-l-md; }
+    .period-btn:last-child { @apply -ml-px rounded-r-md; }
+    .period-btn.active { @apply bg-blue-50 text-blue-600 border-blue-500; }
+</style>
+{% endblock %}
+
+{% block title %}Tableau de bord - Gestion de Stock{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/custom.css' %}">
+{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="inline-flex items-center">
+        <span class="text-blue-600">/</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Tableau de bord</span>
+    </li>
+{% endblock %}
+
+{% block page_title %}
+    Tableau de bord
+    <p class="mt-1 text-sm font-normal text-gray-500">Aperçu global de votre gestion de stock</p>
+{% endblock %}
+
+{% block page_actions %}
+    <div class="flex flex-wrap gap-3">
+        <a href="{% url 'stock:ajouter_produit' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i> Nouveau produit
+        </a>
+        <a href="{% url 'stock:ajouter_entree' %}" class="btn btn-success">
+            <i class="fas fa-arrow-down mr-2"></i> Entrée stock
+        </a>
+        <a href="{% url 'stock:ajouter_sortie' %}" class="btn btn-warning">
+            <i class="fas fa-arrow-up mr-2"></i> Sortie stock
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Carte Nombre de produits -->
+        <div class="stat-card card-gradient-primary">
+            <i class="fas fa-box"></i>
+            <h3>{{ stats.total_produits|intcomma }}</h3>
+            <p>Produits en stock</p>
+            <div class="absolute bottom-4 right-4 opacity-20">
+                <i class="fas fa-box text-4xl"></i>
+            </div>
+        </div>
+        
+        <!-- Carte Valeur du stock -->
+        <div class="stat-card card-gradient-success">
+            <i class="fas fa-coins"></i>
+            <h3>{{ stats.valeur_totale|floatformat:0|intcomma }} FCFA</h3>
+            <p>Valeur du stock</p>
+            <div class="absolute bottom-4 right-4 opacity-20">
+                <i class="fas fa-coins text-4xl"></i>
+            </div>
+        </div>
+        
+        <!-- Carte Produits en alerte -->
+        <div class="stat-card card-gradient-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>{{ stats.produits_en_alerte|intcomma }}</h3>
+            <p>Produits en alerte</p>
+            <div class="absolute bottom-4 right-4 opacity-20">
+                <i class="fas fa-exclamation-triangle text-4xl"></i>
+            </div>
+            <div class="absolute top-4 right-4 text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">
+                {{ stats.produits_en_alerte }} sur {{ stats.total_produits }}
+            </div>
+        </div>
+        
+        <!-- Carte Mouvements récents -->
+        <div class="stat-card card-gradient-info">
+            <i class="fas fa-exchange-alt"></i>
+            <h3>{{ stats.mouvements_7j|intcomma }}</h3>
+            <p>Mouvements (7j)</p>
+            <div class="absolute bottom-4 right-4 opacity-20">
+                <i class="fas fa-exchange-alt text-4xl"></i>
+            </div>
+            <div class="absolute top-4 right-4 text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">
+                <i class="fas fa-arrow-down"></i> {{ stats.entrees_7j }} | 
+                <i class="fas fa-arrow-up"></i> {{ stats.sorties_7j }}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Graphique d'activité -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div class="p-5 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Activité des 7 derniers jours</h3>
+            <p class="text-sm text-gray-500">Évolution des entrées et sorties de stock</p>
+        </div>
+        <div class="p-4">
+            <canvas id="activityChart" height="120"></canvas>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Derniers mouvements de stock -->
+        <div class="list-card">
+            <div class="card-header">
+                <h3>Derniers mouvements</h3>
+                <a href="{% url 'stock:liste_entrees' %}" class="btn btn-sm btn-primary">
+                    Voir tout <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Produit</th>
+                                <th class="text-right">Quantité</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mouvement in derniers_mouvements %}
+                            <tr class="list-item">
+                                <td class="text-gray-600">
+                                    {{ mouvement.date|date:"d/m/Y H:i" }}
+                                </td>
+                                <td>
+                                    {% if mouvement in dernieres_entrees %}
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-arrow-down mr-1"></i> Entrée
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-warning">
+                                        <i class="fas fa-arrow-up mr-1"></i> Sortie
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mouvement.produit %}
+                                    <a href="{% url 'stock:detail_produit' mouvement.produit.id %}" class="text-blue-600 hover:text-blue-800">
+                                        {{ mouvement.produit.designation|default:"Produit supprimé" }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-gray-500">Produit supprimé</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right">{{ mouvement.quantite|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-8 text-gray-500">
+                                    <i class="fas fa-inbox text-3xl mb-3 opacity-50"></i>
+                                    <p class="text-sm">Aucun mouvement récent</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Produits en alerte de stock -->
+        <div class="list-card">
+            <div class="card-header">
+                <h3>Produits en alerte de stock</h3>
+                <a href="{% url 'stock:rapport_stock_faible' %}" class="btn btn-sm btn-primary">
+                    Voir tout <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th>Référence</th>
+                                <th class="text-right">Stock actuel</th>
+                                <th class="text-right">Seuil d'alerte</th>
+                                <th class="text-right">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for produit in produits_alerte_liste %}
+                            <tr class="list-item">
+                                <td class="font-medium">
+                                    <a href="{% url 'stock:detail_produit' produit.id %}" class="text-blue-600 hover:text-blue-800">
+                                        {{ produit.designation|truncatechars:30 }}
+                                    </a>
+                                </td>
+                                <td class="text-gray-600">
+                                    {% if produit.reference %}{{ produit.reference }}{% else %}-{% endif %}
+                                </td>
+                                <td class="text-right font-medium {% if produit.quantite_stock <= 0 %}text-red-600{% else %}text-amber-600{% endif %}">
+                                    {{ produit.quantite_stock|intcomma }}
+                                </td>
+                                <td class="text-right text-gray-600">
+                                    {{ produit.seuil_alerte|intcomma|default:"-" }}
+                                </td>
+                                <td class="text-right">
+                                    {% if produit.quantite_stock <= 0 %}
+                                    <span class="badge badge-danger">
+                                        <i class="fas fa-times-circle mr-1"></i> Rupture
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-warning">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i> Alerte
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-8 text-gray-500">
+                                    <i class="fas fa-check-circle text-3xl mb-3 text-green-400"></i>
+                                    <p class="font-medium">Aucun produit en alerte</p>
+                                    <p class="text-sm mt-1">Tous les produits sont en stock</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistiques par catégorie -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div class="p-5 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Statistiques par catégorie</h3>
+            <p class="text-sm text-gray-500">Répartition des produits et alertes par catégorie</p>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {% for categorie in categories_stats %}
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-medium text-gray-900 truncate">{{ categorie.nom }}</h4>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                            {{ categorie.nb_produits }} produit{{ categorie.nb_produits|pluralize }}
+                        </span>
+                    </div>
+                    {% if categorie.nb_alertes > 0 %}
+                    <div class="mt-2">
+                        <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                            <span>Alertes</span>
+                            <span class="font-medium">{{ categorie.nb_alertes }}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5">
+                            <div class="bg-yellow-500 h-1.5 rounded-full" 
+                                 style="width: {% widthratio categorie.nb_alertes categorie.nb_produits 100 %}%">
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-green-600 mt-2">
+                        <i class="fas fa-check-circle mr-1"></i> Stock suffisant
+                    </p>
+                    {% endif %}
+                    <a href="{% url 'stock:liste_produits' %}?categorie={{ categorie.id }}" 
+                       class="mt-3 inline-block text-xs text-blue-600 hover:text-blue-800">
+                        Voir les produits <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+                {% empty %}
+                <div class="col-span-5 text-center py-8 text-gray-500">
+                    <i class="fas fa-inbox text-3xl mb-3 opacity-50"></i>
+                    <p class="text-sm">Aucune catégorie trouvée</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 gap-6 mb-8">
+        <!-- Actions rapides -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-5 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Actions rapides</h3>
+                <p class="text-sm text-gray-500">Accédez rapidement aux fonctionnalités principales</p>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <a href="{% url 'stock:ajouter_produit' %}" class="p-4 border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-blue-100 rounded-lg text-blue-600 mr-3">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Nouveau produit</h4>
+                                <p class="text-xs text-gray-500">Ajouter un produit au catalogue</p>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="{% url 'stock:ajouter_entree' %}" class="p-4 border border-gray-200 rounded-lg hover:bg-green-50 transition-colors">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-green-100 rounded-lg text-green-600 mr-3">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Nouvelle entrée</h4>
+                                <p class="text-xs text-gray-500">Enregistrer une entrée de stock</p>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="{% url 'stock:ajouter_sortie' %}" class="p-4 border border-gray-200 rounded-lg hover:bg-yellow-50 transition-colors">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-yellow-100 rounded-lg text-yellow-600 mr-3">
+                                <i class="fas fa-arrow-up"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Nouvelle sortie</h4>
+                                <p class="text-xs text-gray-500">Enregistrer une sortie de stock</p>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="{% url 'stock:rapports' %}" class="p-4 border border-gray-200 rounded-lg hover:bg-purple-50 transition-colors">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-purple-100 rounded-lg text-purple-600 mr-3">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Rapports</h4>
+                                <p class="text-xs text-gray-500">Générer des rapports détaillés</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 gap-6 mb-8">
+        <!-- Graphique des mouvements (7 derniers jours) -->
+        <div class="chart-card">
+            <div class="card-header flex justify-between items-center">
+                <h3>Mouvements des 30 derniers jours</h3>
+                <div class="inline-flex rounded-md shadow-sm" role="group">
+                    <button type="button" class="px-4 py-2 text-sm font-medium rounded-l-lg bg-blue-600 text-white hover:bg-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-500 transition-colors duration-200" id="btn-7j">
+                        7 jours
+                    </button>
+                    <button type="button" class="px-4 py-2 text-sm font-medium bg-white border-t border-b border-gray-300 text-gray-700 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-blue-500 transition-colors duration-200" id="btn-30j">
+                        30 jours
+                    </button>
+                    <button type="button" class="px-4 py-2 text-sm font-medium bg-white border border-l-0 border-gray-300 rounded-r-md text-gray-700 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-blue-500 transition-colors duration-200" id="btn-90j">
+                        90 jours
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-6">
+                <div class="chart-container">
+                    <canvas id="mouvementsChart" class="w-full h-[300px]"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Données pour le graphique
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|safe }},
+            datasets: [{
+                label: 'Entrées',
+                data: {{ serie_entrees|safe }},
+                borderColor: 'rgb(16, 185, 129)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.3,
+                fill: true
+            }, {
+                label: 'Sorties',
+                data: {{ serie_sorties|safe }},
+                borderColor: 'rgb(245, 158, 11)',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+});
+</script>
+<script>
+    // Données pour le graphique (à remplacer par les données réelles du contexte)
+    const ctx = document.getElementById('mouvementsChart').getContext('2d');
+    
+    // Données pour chaque période (à remplacer par des données réelles)
+    const periodes = {
+        '7j': {
+            labels: [
+                {% for date in mouvements_7j.labels %}'{{ date|date:"d/m" }}'{% if not forloop.last %},{% endif %}{% endfor %}
+            ],
+            entrees: [{% for entree in mouvements_7j.entrees %}{{ entree }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            sorties: [{% for sortie in mouvements_7j.sorties %}{{ sortie }}{% if not forloop.last %},{% endif %}{% endfor %}]
+        },
+        '30j': {
+            labels: [
+                {% for date in mouvements_30j.labels %}'{{ date|date:"d/m" }}'{% if not forloop.last %},{% endif %}{% endfor %}
+            ],
+            entrees: [{% for entree in mouvements_30j.entrees %}{{ entree }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            sorties: [{% for sortie in mouvements_30j.sorties %}{{ sortie }}{% if not forloop.last %},{% endif %}{% endfor %}]
+        },
+        '90j': {
+            labels: [
+                {% for date in mouvements_90j.labels %}'{{ date|date:"d/m" }}'{% if not forloop.last %},{% endif %}{% endfor %}
+            ],
+            entrees: [{% for entree in mouvements_90j.entrees %}{{ entree }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            sorties: [{% for sortie in mouvements_90j.sorties %}{{ sortie }}{% if not forloop.last %},{% endif %}{% endfor %}]
+        }
+    };
+
+    // Configuration du graphique
+    const config = {
+        type: 'line',
+        data: {
+            labels: periodes['30j'].labels,
+            datasets: [
+                {
+                    label: 'Entrées',
+                    data: periodes['30j'].entrees,
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: 'white',
+                    pointBorderColor: 'rgb(16, 185, 129)',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Sorties',
+                    data: periodes['30j'].sorties,
+                    borderColor: 'rgb(239, 68, 68)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: 'white',
+                    pointBorderColor: 'rgb(239, 68, 68)',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 13, weight: '500' },
+                    padding: 12,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: function(context) {
+                            return ' ' + context.dataset.label + ': ' + context.parsed.y + ' unité' + (context.parsed.y > 1 ? 's' : '');
+                        },
+                        labelPointStyle: function() {
+                            return {
+                                pointStyle: 'circle',
+                                rotation: 0
+                            };
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#6B7280'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(229, 231, 235, 0.5)'
+                    },
+                    ticks: {
+                        color: '#6B7280',
+                        precision: 0
+                    }
+                }
+            }
+        }
+    };
+    
+    // Création du graphique
+    const mouvementsChart = new Chart(ctx, config);
+
+    // Gestion du changement de période
+    function updateChart(periode) {
+        const periodeData = periodes[periode];
+        
+        // Mise à jour des données du graphique
+        mouvementsChart.data.labels = periodeData.labels;
+        mouvementsChart.data.datasets[0].data = periodeData.entrees;
+        mouvementsChart.data.datasets[1].data = periodeData.sorties;
+        
+        // Mise à jour du titre
+        document.querySelector('.chart-card h3').textContent = 
+            `Mouvements des ${periode === '7j' ? '7' : periode === '30j' ? '30' : '90'} derniers jours`;
+        
+        // Mise à jour des boutons actifs
+        document.querySelectorAll('[id^="btn-"].bg-blue-600').forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300');
+        });
+        
+        const activeBtn = document.getElementById(`btn-${periode}`);
+        activeBtn.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-300');
+        activeBtn.classList.add('bg-blue-600', 'text-white');
+        
+        // Animation de mise à jour
+        mouvementsChart.update('none');
+    }
+
+    // Gestion des clics sur les boutons de période
+    document.getElementById('btn-7j').addEventListener('click', () => updateChart('7j'));
+    document.getElementById('btn-30j').addEventListener('click', () => updateChart('30j'));
+    document.getElementById('btn-90j').addEventListener('click', () => updateChart('90j'));
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static i18n humanize %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-exchange-alt me-2"></i>{{ title }}
+            </h4>
+        </div>
+        <div class="card-body">
+            <!-- Filtres -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>{% trans 'Filtres' %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            {{ form.date_debut.label_tag }}
+                            {{ form.date_debut }}
+                            {% if form.date_debut.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.date_debut.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.date_fin.label_tag }}
+                            {{ form.date_fin }}
+                            {% if form.date_fin.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.date_fin.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.produit.label_tag }}
+                            {{ form.produit }}
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-1"></i> {% trans 'Filtrer' %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Totaux -->
+            {% if mouvements %}
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-success bg-opacity-10">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-success">{% trans 'Total Entrées' %}</h5>
+                            <h3 class="mb-0">{{ total_entrees|floatformat:2|intcomma }} FCFA</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-danger bg-opacity-10">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-danger">{% trans 'Total Sorties' %}</h5>
+                            <h3 class="mb-0">{{ total_sorties|floatformat:2|intcomma }} FCFA</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-primary bg-opacity-10">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-primary">{% trans 'Solde' %}</h5>
+                            <h3 class="mb-0">{{ total_general|floatformat:2|intcomma }} FCFA</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Tableau des mouvements -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans 'Date' %}</th>
+                            <th>{% trans 'Type' %}</th>
+                            <th>{% trans 'Produit' %}</th>
+                            <th class="text-end">{% trans 'Quantité' %}</th>
+                            <th class="text-end">{% trans 'Prix unitaire' %}</th>
+                            <th class="text-end">{% trans 'Montant total' %}</th>
+                            <th>{% trans 'Référence' %}</th>
+                            <th>{% trans 'Utilisateur' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mouvement in mouvements %}
+                        <tr>
+                            <td>{{ mouvement.date|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge {% if mouvement.type == 'Entrée' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ mouvement.type }}
+                                </span>
+                            </td>
+                            <td>{{ mouvement.produit.designation }}</td>
+                            <td class="text-end">{{ mouvement.quantite|floatformat:2|intcomma }} {{ mouvement.produit.unite_mesure|default:'' }}</td>
+                            <td class="text-end">{{ mouvement.prix_unitaire|floatformat:2|intcomma }} FCFA</td>
+                            <td class="text-end fw-bold">{{ mouvement.montant_total|floatformat:2|intcomma }} FCFA</td>
+                            <td>{{ mouvement.reference }}</td>
+                            <td>{{ mouvement.utilisateur.get_full_name|default:mouvement.utilisateur.username }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fas fa-info-circle me-2"></i>
+                                {% trans 'Aucun mouvement trouvé avec les critères sélectionnés.' %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Boutons d'export -->
+            {% if mouvements %}
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    <span class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        {% blocktrans count count=mouvements|length %}
+                            {{ count }} mouvement trouvé
+                        {% plural %}
+                            {{ count }} mouvements trouvés
+                        {% endblocktrans %}
+                    </span>
+                </div>
+                <div>
+                    <a href="?{{ request.GET.urlencode }}&format=pdf" class="btn btn-danger me-2">
+                        <i class="fas fa-file-pdf me-1"></i> {% trans 'Exporter en PDF' %}
+                    </a>
+                    <a href="?{{ request.GET.urlencode }}&format=excel" class="btn btn-success">
+                        <i class="fas fa-file-excel me-1"></i> {% trans 'Exporter en Excel' %}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialisation des sélecteurs de date
+    document.addEventListener('DOMContentLoaded', function() {
+        // Si les champs de date existent, on les initialise avec la date d'aujourd'hui
+        const dateDebut = document.getElementById('id_date_debut');
+        const dateFin = document.getElementById('id_date_fin');
+        
+        // Si les dates ne sont pas déjà définies, on les initialise avec le mois en cours
+        if (dateDebut && !dateDebut.value) {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            dateDebut.valueAsDate = firstDay;
+            
+            if (dateFin && !dateFin.value) {
+                dateFin.valueAsDate = today;
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'inventaire/base.html' %}
+
+{% block title %}Erreur serveur - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <div class="error-template">
+                <h1 class="display-1 text-danger">500</h1>
+                <h2 class="display-4">Erreur du serveur</h2>
+                <div class="error-details mb-4">
+                    <p class="lead">
+                        Oups ! Une erreur inattendue s'est produite.
+                    </p>
+                    <p class="text-muted">
+                        Notre équipe technique a été notifiée et travaille à résoudre le problème.
+                    </p>
+                </div>
+                <div class="error-actions">
+                    <a href="{% url 'inventaire:accueil' %}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-home me-2"></i>Retour à l'accueil
+                    </a>
+                    <a href="{% url 'inventaire:contact' %}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-envelope me-2"></i>Nous contacter
+                    </a>
+                </div>
+                <div class="mt-5 pt-4 border-top">
+                    <p class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Si le problème persiste, veuillez noter l'heure et les actions que vous effectuiez avant cette erreur.
+                    </p>
+                    {% if request.sentry.id %}
+                    <div class="alert alert-warning text-start mt-3">
+                        <h5><i class="fas fa-bug me-2"></i>Rapport d'erreur</h5>
+                        <p class="mb-1">Référence de l'erreur : <code>{{ request.sentry.id }}</code></p>
+                        <p class="mb-0 small">Veuillez mentionner ce code si vous contactez le support technique.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,325 @@
+{% extends 'stock/base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} un produit - GPlus StockPilot{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="inline-flex items-center">
+        <a href="{% url 'liste_produits' %}" class="text-blue-600 hover:text-blue-800">Produits</a>
+        <span class="mx-2 text-gray-400">/</span>
+    </li>
+    <li class="inline-flex items-center">
+        <span class="text-gray-500">{% if form.instance.pk %}Modifier{% else %}Ajouter{% endif %} un produit</span>
+    </li>
+{% endblock %}
+
+{% block page_title %}
+    {% if form.instance.pk %}
+        Modifier le produit
+    {% else %}
+        Ajouter un nouveau produit
+    {% endif %}
+    <p class="mt-1 text-sm font-normal text-gray-500">
+        {% if form.instance.pk %}
+            Mettez à jour les informations du produit
+        {% else %}
+            Remplissez les champs pour ajouter un nouveau produit
+        {% endif %}
+    </p>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Colonne de gauche -->
+                <div class="space-y-6">
+                    <!-- Code du produit -->
+                    <div class="form-group">
+                        <label for="{{ form.code.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.code.label }}
+                            {% if form.code.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {% render_field form.code class="form-input w-full" %}
+                        </div>
+                        {% if form.code.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.code.errors|join:", " }}</p>
+                        {% endif %}
+                        {% if form.code.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.code.help_text }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Désignation -->
+                    <div class="form-group">
+                        <label for="{{ form.designation.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.designation.label }}
+                            {% if form.designation.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {% render_field form.designation class="form-input w-full" %}
+                        </div>
+                        {% if form.designation.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.designation.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Catégorie -->
+                    <div class="form-group">
+                        <label for="{{ form.categorie.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.categorie.label }}
+                            {% if form.categorie.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1 relative">
+                            {% render_field form.categorie class="form-select w-full" %}
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        {% if form.categorie.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.categorie.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Fournisseur -->
+                    <div class="form-group">
+                        <label for="{{ form.fournisseur.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.fournisseur.label }}
+                        </label>
+                        <div class="mt-1 relative">
+                            {% render_field form.fournisseur class="form-select w-full" %}
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        {% if form.fournisseur.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.fournisseur.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Photo -->
+                    <div class="form-group">
+                        <label for="{{ form.photo.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.photo.label }}
+                        </label>
+                        <div class="mt-1">
+                            {% if form.instance.photo %}
+                                <div class="mb-2">
+                                    <img src="{{ form.instance.photo.url }}" alt="Photo actuelle" class="h-20 w-20 object-cover rounded">
+                                </div>
+                            {% endif %}
+                            <div class="mt-1 flex items-center">
+                                <label class="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <span>Choisir un fichier</span>
+                                    <input type="file" name="{{ form.photo.name }}" id="{{ form.photo.id_for_label }}" class="sr-only" onchange="updateFileName(this)">
+                                </label>
+                                <span id="file-name" class="ml-3 text-sm text-gray-500">
+                                    {% if form.instance.photo %}{{ form.instance.photo.name|slice:":30" }}...{% else %}Aucun fichier sélectionné{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% if form.photo.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.photo.errors|join:", " }}</p>
+                        {% endif %}
+                        {% if form.photo.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.photo.help_text }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Colonne de droite -->
+                <div class="space-y-6">
+                    <!-- Prix d'achat -->
+                    <div class="form-group">
+                        <label for="{{ form.prix_achat.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.prix_achat.label }}
+                            {% if form.prix_achat.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">€</span>
+                            </div>
+                            {% render_field form.prix_achat class="form-input block w-full pl-7 pr-12" placeholder="0.00" %}
+                        </div>
+                        {% if form.prix_achat.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.prix_achat.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Prix de vente -->
+                    <div class="form-group">
+                        <label for="{{ form.prix_vente.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.prix_vente.label }}
+                            {% if form.prix_vente.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">€</span>
+                            </div>
+                            {% render_field form.prix_vente class="form-input block w-full pl-7 pr-12" placeholder="0.00" %}
+                        </div>
+                        {% if form.prix_vente.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.prix_vente.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Quantité en stock -->
+                    <div class="form-group">
+                        <label for="{{ form.quantite_stock.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.quantite_stock.label }}
+                            {% if form.quantite_stock.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {% render_field form.quantite_stock class="form-input w-full" %}
+                        </div>
+                        {% if form.quantite_stock.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.quantite_stock.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Seuil d'alerte -->
+                    <div class="form-group">
+                        <label for="{{ form.seuil_alerte.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.seuil_alerte.label }}
+                            {% if form.seuil_alerte.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {% render_field form.seuil_alerte class="form-input w-full" %}
+                        </div>
+                        {% if form.seuil_alerte.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.seuil_alerte.errors|join:", " }}</p>
+                        {% endif %}
+                        {% if form.seuil_alerte.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.seuil_alerte.help_text }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Unité de mesure -->
+                    <div class="form-group">
+                        <label for="{{ form.unite_mesure.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.unite_mesure.label }}
+                        </label>
+                        <div class="mt-1">
+                            {% render_field form.unite_mesure class="form-select w-full" %}
+                        </div>
+                        {% if form.unite_mesure.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.unite_mesure.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    {{ form.description.label }}
+                </label>
+                <div class="mt-1">
+                    {% render_field form.description class="form-textarea w-full" rows="3" %}
+                </div>
+                {% if form.description.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.description.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Statut -->
+            <div class="form-group">
+                <div class="flex items-center">
+                    {% render_field form.actif class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %}
+                    <label for="{{ form.actif.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                        {{ form.actif.label }}
+                    </label>
+                </div>
+                {% if form.actif.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.actif.errors|join:", " }}</p>
+                {% endif %}
+                {% if form.actif.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.actif.help_text }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="flex items-center justify-end pt-6 border-t border-gray-200 mt-8">
+                <a href="{% url 'liste_produits' %}" class="btn btn-gray mr-3">
+                    <i class="fas fa-times mr-2"></i> Annuler
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Mise à jour du nom du fichier sélectionné
+    function updateFileName(input) {
+        const fileName = input.files[0] ? input.files[0].name : 'Aucun fichier sélectionné';
+        document.getElementById('file-name').textContent = fileName.length > 30 ? 
+            fileName.substring(0, 30) + '...' : fileName;
+    }
+    
+    // Formatage des champs de prix
+    document.addEventListener('DOMContentLoaded', function() {
+        // Formatage des champs de prix à la saisie
+        const formatPrice = (input) => {
+            // Récupérer la valeur actuelle
+            let value = input.value.replace(/[^0-9,]/g, '');
+            
+            // Remplacer la virgule par un point pour le calcul
+            value = value.replace(',', '.');
+            
+            // Si la valeur est vide, on laisse vide
+            if (value === '') {
+                input.value = '';
+                return;
+            }
+            
+            // Convertir en nombre et formater avec 2 décimales
+            const number = parseFloat(value);
+            if (!isNaN(number)) {
+                // Formater avec une virgule comme séparateur décimal
+                input.value = number.toFixed(2).replace('.', ',');
+            }
+        };
+        
+        // Appliquer le formatage aux champs de prix
+        const prixAchatInput = document.getElementById('{{ form.prix_achat.id_for_label }}');
+        const prixVenteInput = document.getElementById('{{ form.prix_vente.id_for_label }}');
+        
+        if (prixAchatInput) {
+            prixAchatInput.addEventListener('blur', function() {
+                formatPrice(this);
+            });
+        }
+        
+        if (prixVenteInput) {
+            prixVenteInput.addEventListener('blur', function() {
+                formatPrice(this);
+            });
+        }
+    });
+</script>
+{% endblock %}

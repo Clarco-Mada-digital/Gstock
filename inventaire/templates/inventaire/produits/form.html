@@ -1,0 +1,275 @@
+{% extends 'inventaire/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block header %}
+<div class="d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">{{ title }}</h1>
+    <a href="{% url 'inventaire:liste_produits' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Retour à la liste
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.designation.id_for_label }}" class="form-label">
+                                {{ form.designation.label }}
+                                {% if form.designation.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ form.designation }}
+                            {% if form.designation.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.designation.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.code.id_for_label }}" class="form-label">
+                                {{ form.code.label }}
+                                {% if form.code.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ form.code }}
+                            {% if form.code.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.code.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.categorie.id_for_label }}" class="form-label">
+                                {{ form.categorie.label }}
+                                {% if form.categorie.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ form.categorie }}
+                            {% if form.categorie.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.categorie.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.unite.id_for_label }}" class="form-label">
+                                {{ form.unite.label }}
+                                {% if form.unite.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ form.unite }}
+                            {% if form.unite.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.unite.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.quantite_stock.id_for_label }}" class="form-label">
+                                {{ form.quantite_stock.label }}
+                                {% if form.quantite_stock.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <div class="input-group">
+                                {{ form.quantite_stock }}
+                                <span class="input-group-text">{{ form.unite.value|default:'' }}</span>
+                            </div>
+                            {% if form.quantite_stock.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.quantite_stock.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.seuil_alerte.id_for_label }}" class="form-label">
+                                {{ form.seuil_alerte.label }}
+                                {% if form.seuil_alerte.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <div class="input-group">
+                                {{ form.seuil_alerte }}
+                                <span class="input-group-text">{{ form.unite.value|default:'' }}</span>
+                            </div>
+                            {% if form.seuil_alerte.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.seuil_alerte.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.prix_achat.id_for_label }}" class="form-label">
+                                {{ form.prix_achat.label }}
+                                {% if form.prix_achat.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <div class="input-group">
+                                {{ form.prix_achat }}
+                                <span class="input-group-text">€</span>
+                            </div>
+                            {% if form.prix_achat.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.prix_achat.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.prix_vente.id_for_label }}" class="form-label">
+                                {{ form.prix_vente.label }}
+                                {% if form.prix_vente.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <div class="input-group">
+                                {{ form.prix_vente }}
+                                <span class="input-group-text">€</span>
+                            </div>
+                            {% if form.prix_vente.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.prix_vente.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.tva.id_for_label }}" class="form-label">
+                                {{ form.tva.label }}
+                                {% if form.tva.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <div class="input-group">
+                                {{ form.tva }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            {% if form.tva.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.tva.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.actif.id_for_label }}" class="form-label">
+                                {{ form.actif.label }}
+                            </label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.actif }}
+                            </div>
+                            {% if form.actif.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.actif.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.image.id_for_label }}" class="form-label">
+                            {{ form.image.label }}
+                        </label>
+                        {{ form.image }}
+                        {% if form.image.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.image.errors.0 }}
+                            </div>
+                        {% endif %}
+                        {% if form.instance.image %}
+                            <div class="mt-2">
+                                <img src="{{ form.instance.image.url }}" alt="Image actuelle" class="img-thumbnail" style="max-height: 100px;">
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'inventaire:liste_produits' %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-times me-1"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Activation de la validation des formulaires Bootstrap
+    'use strict';
+    
+    // Sélection de tous les formulaires avec la classe 'needs-validation'
+    var forms = document.querySelectorAll('.needs-validation');
+    
+    // Boucle sur chaque formulaire pour empêcher la soumission si invalide
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+    });
+    
+    // Mise à jour dynamique des unités pour les champs de quantité
+    const uniteField = document.getElementById('{{ form.unite.id_for_label }}');
+    const quantiteFields = [
+        document.getElementById('{{ form.quantite_stock.id_for_label }}'),
+        document.getElementById('{{ form.seuil_alerte.id_for_label }}')
+    ];
+    
+    if (uniteField) {
+        uniteField.addEventListener('change', function() {
+            const unite = this.value || '';
+            quantiteFields.forEach(function(field) {
+                if (field) {
+                    const inputGroup = field.closest('.input-group');
+                    if (inputGroup) {
+                        const span = inputGroup.querySelector('.input-group-text');
+                        if (span) {
+                            span.textContent = unite;
+                        }
+                    }
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

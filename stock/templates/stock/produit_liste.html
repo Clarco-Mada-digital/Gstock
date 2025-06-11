@@ -1,0 +1,273 @@
+{% extends 'stock/base.html' %}
+{% load humanize %}
+
+{% block title %}Tous les produits - GPlus StockPilot{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="inline-flex items-center">
+        <span class="text-blue-600">/</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Tous les produits</span>
+    </li>
+{% endblock %}
+
+{% block page_title %}
+    Tous les produits
+    <p class="mt-1 text-sm font-normal text-gray-500">Gérez l'ensemble de votre inventaire</p>
+{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'ajouter_produit' %}" class="btn btn-primary">
+        <i class="fas fa-plus mr-2"></i> Ajouter un produit
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header flex flex-col md:flex-row md:items-center md:justify-between">
+        <div class="mb-4 md:mb-0 md:mr-4">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <input type="text" id="search" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Rechercher des produits...">
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <div class="w-full md:w-auto">
+                <select id="categorie-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">Toutes les catégories</option>
+                    {% for categorie in categories %}
+                        <option value="{{ categorie.id }}" {% if request.GET.categorie == categorie.id|stringformat:'s' %}selected{% endif %}>
+                            {{ categorie.nom }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="w-full md:w-auto">
+                <select id="fournisseur-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">Tous les fournisseurs</option>
+                    {% for fournisseur in fournisseurs %}
+                        <option value="{{ fournisseur.id }}" {% if request.GET.fournisseur == fournisseur.id|stringformat:'s' %}selected{% endif %}>
+                            {{ fournisseur.nom }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="w-full md:w-auto">
+                <select id="stock-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">Tous les stocks</option>
+                    <option value="alerte" {% if request.GET.stock == 'alerte' %}selected{% endif %}>En alerte</option>
+                    <option value="faible" {% if request.GET.stock == 'faible' %}selected{% endif %}>Stock faible</option>
+                    <option value="disponible" {% if request.GET.stock == 'disponible' %}selected{% endif %}>En stock</option>
+                    <option value="epuise" {% if request.GET.stock == 'epuise' %}selected{% endif %}>Épuisé</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Produit
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Catégorie
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fournisseur
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Prix
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Stock
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for produit in produits %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                {% if produit.photo %}
+                                    <img class="h-10 w-10 rounded-full object-cover" src="{{ produit.photo.url }}" alt="{{ produit.designation }}">
+                                {% else %}
+                                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                        <i class="fas fa-box text-gray-400"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">
+                                    <a href="{% url 'detail_produit' produit.pk %}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                        {{ produit.designation }}
+                                    </a>
+                                </div>
+                                <div class="text-sm text-gray-500">{{ produit.code }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            {% if produit.categorie %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    {{ produit.categorie.nom }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            {% if produit.fournisseur %}
+                                {{ produit.fournisseur.nom }}
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <span class="text-gray-900">{{ produit.prix_vente|default:0|floatformat:2 }} €</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                        <div class="text-sm {% if produit.quantite_stock <= produit.seuil_alerte %}text-red-600 font-medium{% else %}text-gray-900{% endif %}">
+                            {{ produit.quantite_stock|intcomma }}
+                        </div>
+                        {% if produit.seuil_alerte %}
+                            <div class="text-xs text-gray-500">Seuil: {{ produit.seuil_alerte|intcomma }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex justify-end space-x-2">
+                            <a href="{% url 'ajouter_entree' %}?produit={{ produit.id }}" class="text-green-600 hover:text-green-900" title="Ajouter du stock">
+                                <i class="fas fa-plus-circle"></i>
+                            </a>
+                            <a href="{% url 'ajouter_sortie' %}?produit={{ produit.id }}" class="text-yellow-600 hover:text-yellow-900" title="Sortie de stock">
+                                <i class="fas fa-minus-circle"></i>
+                            </a>
+                            <a href="{% url 'modifier_produit' produit.id %}" class="text-blue-600 hover:text-blue-900" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'detail_produit' produit.id %}" class="text-indigo-600 hover:text-indigo-900" title="Voir les détails">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                        Aucun produit trouvé.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if is_paginated %}
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Affichage de <span class="font-medium">{{ page_obj.start_index }}</span>
+                    à <span class="font-medium">{{ page_obj.end_index }}</span>
+                    sur <span class="font-medium">{{ paginator.count }}</span> résultats
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Précédent</span>
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                               class="z-10 bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                {{ num }}
+                            </a>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                               class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                {{ num }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Suivant</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Filtrage côté client pour une meilleure réactivité
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search');
+        const categorieFilter = document.getElementById('categorie-filter');
+        const fournisseurFilter = document.getElementById('fournisseur-filter');
+        const stockFilter = document.getElementById('stock-filter');
+        
+        // Fonction pour mettre à jour les filtres dans l'URL
+        function updateFilters() {
+            const params = new URLSearchParams();
+            
+            if (searchInput.value) {
+                params.set('q', searchInput.value);
+            }
+            
+            if (categorieFilter.value) {
+                params.set('categorie', categorieFilter.value);
+            }
+            
+            if (fournisseurFilter.value) {
+                params.set('fournisseur', fournisseurFilter.value);
+            }
+            
+            if (stockFilter.value) {
+                params.set('stock', stockFilter.value);
+            }
+            
+            // Mettre à jour l'URL sans recharger la page
+            const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.pushState({}, '', newUrl);
+            
+            // Recharger la page avec les nouveaux filtres
+            window.location.href = newUrl;
+        }
+        
+        // Écouteurs d'événements
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                updateFilters();
+            }
+        });
+        
+        categorieFilter.addEventListener('change', updateFilters);
+        fournisseurFilter.addEventListener('change', updateFilters);
+        stockFilter.addEventListener('change', updateFilters);
+    });
+</script>
+{% endblock %}

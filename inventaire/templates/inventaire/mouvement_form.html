@@ -1,0 +1,249 @@
+{% extends 'inventaire/base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ mouvement_type|title }} de stock - {{ block.super }}{% endblock %}
+
+{% block header %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'inventaire:accueil' %}">Accueil</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'inventaire:liste_produits' %}">Produits</a></li>
+        {% if produit %}
+        <li class="breadcrumb-item"><a href="{% url 'inventaire:detail_produit' produit.id %}">{{ produit.designation|truncatechars:20 }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">{{ mouvement_type|title }} de stock</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">
+        <i class="fas fa-{% if mouvement_type == 'entrée' or mouvement_type == 'entree' %}plus{% else %}minus{% endif %}-circle me-2"></i>
+        {{ mouvement_type|title }} de stock
+    </h1>
+    <a href="{% if produit %}{% url 'inventaire:detail_produit' produit.id %}{% else %}{% url 'inventaire:liste_produits' %}{% endif %}" 
+       class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Retour
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Erreur
+                        </h5>
+                        <ul class="mb-0">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-info-circle me-2"></i>Informations du mouvement
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.produit.id_for_label }}" class="form-label">
+                                        Produit <span class="text-danger">*</span>
+                                    </label>
+                                    {% if form.produit.errors %}
+                                        {{ form.produit|add_class:"form-select is-invalid" }}
+                                        <div class="invalid-feedback">
+                                            {{ form.produit.errors.0 }}
+                                        </div>
+                                    {% else %}
+                                        {{ form.produit|add_class:"form-select" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.date_mouvement.id_for_label }}" class="form-label">
+                                        Date du mouvement
+                                    </label>
+                                    {{ form.date_mouvement|add_class:"form-control"|attr:"type:datetime-local" }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.quantite.id_for_label }}" class="form-label">
+                                        Quantité <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        {% if form.quantite.errors %}
+                                            {{ form.quantite|add_class:"form-control is-invalid"|attr:"step:0.01" }}
+                                            <span class="input-group-text" id="uniteLabel">
+                                                {{ produit.unite|default:"unité" }}
+                                            </span>
+                                            <div class="invalid-feedback">
+                                                {{ form.quantite.errors.0 }}
+                                            </div>
+                                        {% else %}
+                                            {{ form.quantite|add_class:"form-control"|attr:"step:0.01" }}
+                                            <span class="input-group-text" id="uniteLabel">
+                                                {{ produit.unite|default:"unité" }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Type de mouvement</label>
+                                    <div class="form-control bg-light">
+                                        {% if mouvement_type == 'entrée' %}
+                                            <i class="fas fa-plus-circle text-success me-2"></i> Entrée en stock
+                                        {% else %}
+                                            <i class="fas fa-minus-circle text-danger me-2"></i> Sortie de stock
+                                        {% endif %}
+                                        <input type="hidden" name="type_mouvement" value="{{ mouvement_type|slice:':6'|lower }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                Notes (optionnel)
+                            </label>
+                            {{ form.notes|add_class:"form-control"|attr:"rows:3" }}
+                            <div class="form-text">
+                                Ex: N° de facture, motif de sortie, etc.
+                            </div>
+                        </div>
+                        
+                        <!-- Informations sur le stock actuel -->
+                        {% if produit %}
+                        <div class="alert alert-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Stock actuel :</strong> 
+                                    <span id="stockActuel">{{ produit.quantite_stock|floatformat:2 }}</span> 
+                                    <span id="uniteStock">{{ produit.unite }}</span>
+                                </div>
+                                <div>
+                                    <strong>Nouveau stock :</strong> 
+                                    <span id="nouveauStock" class="fw-bold">
+                                        {{ produit.quantite_stock|add:0|floatformat:2 }}
+                                    </span> 
+                                    <span>{{ produit.unite }}</span>
+                                </div>
+                            </div>
+                            {% if mouvement_type == 'sortie' and produit.quantite_stock <= produit.seuil_alerte %}
+                                <div class="mt-2 text-warning">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Attention : Le stock est en dessous du seuil d'alerte ({{ produit.seuil_alerte }} {{ produit.unite }})
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% if produit %}{% url 'inventaire:detail_produit' produit.id %}{% else %}{% url 'inventaire:liste_produits' %}{% endif %}" 
+                           class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-times me-1"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mise à jour de l'unité lors du changement de produit
+    const produitSelect = document.getElementById('{{ form.produit.id_for_label }}');
+    const uniteLabel = document.getElementById('uniteLabel');
+    const stockActuel = document.getElementById('stockActuel');
+    const uniteStock = document.getElementById('uniteStock');
+    const quantiteInput = document.getElementById('{{ form.quantite.id_for_label }}');
+    const nouveauStock = document.getElementById('nouveauStock');
+    
+    // Données des produits pour la mise à jour du stock
+    const produitsData = {
+        {% for p in produits %}
+            {{ p.id }}: {
+                unite: '{{ p.unite }}',
+                stock: {{ p.quantite_stock|default:0|floatformat:2 }}
+            }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+    
+    // Fonction pour mettre à jour l'unité et le stock
+    function updateUniteEtStock() {
+        const produitId = produitSelect.value;
+        const produit = produitsData[produitId];
+        
+        if (produit) {
+            // Mettre à jour l'unité
+            if (uniteLabel) uniteLabel.textContent = produit.unite || 'unité';
+            if (uniteStock) uniteStock.textContent = produit.unite || 'unité';
+            
+            // Mettre à jour le stock actuel
+            if (stockActuel) stockActuel.textContent = produit.stock;
+            
+            // Mettre à jour le nouveau stock
+            updateNouveauStock();
+        }
+    }
+    
+    // Fonction pour mettre à jour le nouveau stock calculé
+    function updateNouveauStock() {
+        if (!quantiteInput || !nouveauStock || !stockActuel) return;
+        
+        const quantite = parseFloat(quantiteInput.value) || 0;
+        const stockActuelVal = parseFloat(stockActuel.textContent) || 0;
+        let nouveauStockVal;
+        
+        if ('{{ mouvement_type }}' === 'entrée') {
+            nouveauStockVal = stockActuelVal + quantite;
+        } else {
+            nouveauStockVal = stockActuelVal - quantite;
+        }
+        
+        nouveauStock.textContent = nouveauStockVal.toFixed(2);
+        
+        // Changer la couleur si le stock devient négatif
+        if (nouveauStockVal < 0) {
+            nouveauStock.classList.add('text-danger');
+        } else {
+            nouveauStock.classList.remove('text-danger');
+        }
+    }
+    
+    // Écouteurs d'événements
+    if (produitSelect) {
+        produitSelect.addEventListener('change', updateUniteEtStock);
+    }
+    
+    if (quantiteInput) {
+        quantiteInput.addEventListener('input', updateNouveauStock);
+    }
+    
+    // Initialisation
+    updateUniteEtStock();
+});
+</script>
+{% endblock %}

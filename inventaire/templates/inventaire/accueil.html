@@ -1,0 +1,298 @@
+{% extends 'inventaire/base.html' %}
+{% load math_filters %}
+
+{% block title %}Tableau de bord - {{ block.super }}{% endblock %}
+
+{% block header %}
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-gray-900">Tableau de bord</h1>
+    <div class="flex space-x-2">
+        <a href="{% url 'inventaire:entree_stock' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            <i class="fas fa-plus-circle mr-2"></i> Nouvelle entrée
+        </a>
+        <a href="{% url 'inventaire:sortie_stock' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            <i class="fas fa-minus-circle mr-2"></i> Nouvelle sortie
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Cartes statistiques -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Carte du total des produits -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                    <i class="fas fa-boxes text-white text-2xl"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Total des produits
+                        </dt>
+                        <dd class="flex items-baseline">
+                            <div class="text-2xl font-semibold text-gray-900">
+                                {{ total_produits }}
+                            </div>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 px-5 py-3">
+            <div class="text-sm">
+                <a href="{% url 'inventaire:liste_produits' %}" class="font-medium text-blue-600 hover:text-blue-500">
+                    Voir tous les produits <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte des produits en alerte -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                    <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Produits en alerte
+                        </dt>
+                        <dd class="flex items-baseline">
+                            <div class="text-2xl font-semibold text-gray-900">
+                                {{ produits_en_alerte }}
+                            </div>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 px-5 py-3">
+            <div class="text-sm">
+                <a href="#produits-alerte" class="font-medium text-yellow-600 hover:text-yellow-500">
+                    Voir les alertes <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte de la valeur totale du stock -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                    <i class="fas fa-euro-sign text-white text-2xl"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Valeur du stock
+                        </dt>
+                        <dd class="flex items-baseline">
+                            <div class="text-2xl font-semibold text-gray-900">
+                                {{ valeur_totale|floatformat:2 }} €
+                            </div>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 px-5 py-3">
+            <div class="text-sm text-gray-500">
+                Basé sur les prix d'achat
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte des mouvements aujourd'hui -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
+                    <i class="fas fa-exchange-alt text-white text-2xl"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Mouvements aujourd'hui
+                        </dt>
+                        <dd class="flex items-baseline">
+                            <div class="text-2xl font-semibold text-gray-900">
+                                {{ mouvements_aujourdhui|default:"0" }}
+                            </div>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 px-5 py-3">
+            <div class="text-sm">
+                <a href="{% url 'inventaire:historique' %}?date={{ aujourd_hui|date:'Y-m-d' }}" class="font-medium text-purple-600 hover:text-purple-500">
+                    Voir l'activité <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grille principale pour les sections inférieures -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Section des derniers mouvements -->
+    <div class="lg:col-span-2">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Derniers mouvements
+                    </h3>
+                    <a href="{% url 'inventaire:historique' %}" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                        Voir tout <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Type
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Produit
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Quantité
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Stock
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for mouvement in derniers_mouvements %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ mouvement.date_mouvement|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if mouvement.type_mouvement == 'entree' %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Entrée
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Sortie
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-gray-900">{{ mouvement.produit.designation }}</div>
+                                <div class="text-sm text-gray-500">{{ mouvement.produit.code|default:"Sans référence" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <span class="{% if mouvement.type_mouvement == 'entree' %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {% if mouvement.type_mouvement == 'entree' %}+{% else %}-{% endif %}
+                                    {{ mouvement.quantite|floatformat:2 }} {{ mouvement.produit.unite }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+                                {{ mouvement.stock_apres_mouvement|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                Aucun mouvement récent
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-gray-50 px-6 py-3 flex items-center justify-end border-t border-gray-200">
+                <a href="{% url 'inventaire:entree_stock' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-plus-circle mr-2"></i> Nouvelle entrée
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section des produits en alerte -->
+    <div id="produits-alerte">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Produits en alerte
+                    </h3>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        {{ produits_alerte|length }}
+                    </span>
+                </div>
+            </div>
+            <div class="overflow-y-auto" style="max-height: 400px;">
+                {% if produits_alerte %}
+                    <ul class="divide-y divide-gray-200">
+                        {% for produit in produits_alerte %}
+                        <li class="hover:bg-gray-50">
+                            <a href="{% url 'inventaire:modifier_produit' produit.id %}" class="block px-6 py-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate">
+                                            {{ produit.designation }}
+                                        </p>
+                                        <div class="mt-1">
+                                            <div class="flex items-center text-sm text-gray-500">
+                                                <span>Stock: {{ produit.stock_actuel|floatformat:2 }} {{ produit.unite }}</span>
+                                                <span class="mx-2">•</span>
+                                                <span>Seuil: {{ produit.seuil_alerte }} {{ produit.unite }}</span>
+                                            </div>
+                                            <div class="mt-1 w-full bg-gray-200 rounded-full h-2">
+                                                {% with ratio=produit.stock_actuel|div:produit.seuil_alerte|mul:100|floatformat:0 %}
+                                                <div class="bg-yellow-500 h-2 rounded-full" style="width: {{ ratio }}%;"></div>
+                                                {% endwith %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="ml-2 flex-shrink-0">
+                                        <i class="fas fa-chevron-right text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-check-circle text-4xl text-green-500 mb-2"></i>
+                        <p class="mt-2 text-sm text-gray-500">Aucun produit en alerte de stock</p>
+                    </div>
+                {% endif %}
+            </div>
+            {% if produits_alerte %}
+            <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                <a href="{% url 'inventaire:liste_produits' %}?en_alerte=1" class="text-sm font-medium text-yellow-600 hover:text-yellow-500">
+                    Voir tous les produits en alerte <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mettre à jour le tableau de bord toutes les 5 minutes
+setTimeout(function() {
+    window.location.reload();
+}, 300000); // 5 minutes
+</script>
+{% endblock %}

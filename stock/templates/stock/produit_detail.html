@@ -1,0 +1,228 @@
+{% extends 'stock/base.html' %}
+{% load humanize %}
+
+{% block title %}{{ produit.designation }} - Détails du produit{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="inline-flex items-center">
+        <span class="text-blue-600">/</span>
+        <a href="{% url 'stock:liste_produits' %}" class="ml-1 text-sm font-medium text-blue-600 hover:text-blue-800 md:ml-2">Produits</a>
+    </li>
+    <li class="inline-flex items-center">
+        <span class="text-blue-600">/</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Détails du produit</span>
+    </li>
+{% endblock %}
+
+{% block page_title %}
+    {{ produit.designation }}
+    <p class="mt-1 text-sm font-normal text-gray-500">Détails et historique du produit</p>
+{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'produit_update' produit.pk %}" class="btn btn-primary">
+        <i class="fas fa-edit mr-2"></i> Modifier
+    </a>
+    <a href="{% url 'entree_stock_create' %}?produit={{ produit.pk }}" class="btn btn-success">
+        <i class="fas fa-plus-circle mr-2"></i> Ajouter du stock
+    </a>
+    <button class="btn btn-warning">
+        <i class="fas fa-arrow-up mr-2"></i> Sortie de stock
+    </button>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Informations sur le produit -->
+    <div class="lg:col-span-1">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-lg font-medium text-gray-900">Informations sur le produit</h3>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-6">
+                    {% if produit.photo %}
+                        <img src="{{ produit.photo.url }}" alt="{{ produit.designation }}" class="h-40 w-40 object-cover rounded-lg">
+                    {% else %}
+                        <div class="h-40 w-40 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
+                            <i class="fas fa-box text-5xl"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Référence</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ produit.code }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Catégorie</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {% if produit.categorie %}
+                                <a href="{% url 'categorie_detail' produit.categorie.pk %}" class="text-blue-600 hover:underline">
+                                    {{ produit.categorie.nom }}
+                                </a>
+                            {% else %}
+                                <span class="text-gray-400">Non spécifiée</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Fournisseur</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {% if produit.fournisseur %}
+                                <a href="{% url 'fournisseur_detail' produit.fournisseur.pk %}" class="text-blue-600 hover:underline">
+                                    {{ produit.fournisseur.nom }}
+                                </a>
+                            {% else %}
+                                <span class="text-gray-400">Non spécifié</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Description</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {{ produit.description|default:"Aucune description disponible" }}
+                        </dd>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Détails du stock et historique -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Niveaux de stock -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                            <i class="fas fa-boxes text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Stock total</p>
+                            <h3 class="text-2xl font-bold text-gray-800">{{ produit.quantite_stock|intcomma }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                            <i class="fas fa-check-circle text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Stock disponible</p>
+                            <h3 class="text-2xl font-bold text-gray-800">{{ produit.quantite_disponible|intcomma|default:0 }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
+                            <i class="fas fa-exclamation-triangle text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Seuil d'alerte</p>
+                            <h3 class="text-2xl font-bold text-gray-800">{{ produit.seuil_alerte|intcomma|default:"Non défini" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Historique des mouvements de stock -->
+        <div class="card">
+            <div class="card-header flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-900">Historique des mouvements</h3>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100">
+                        <i class="fas fa-download mr-1"></i> Exporter
+                    </button>
+                    <div class="relative">
+                        <select class="block appearance-none bg-white border border-gray-300 text-gray-700 py-1 px-3 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-blue-500 text-sm">
+                            <option>Tous les mouvements</option>
+                            <option>Entrées seulement</option>
+                            <option>Sorties seulement</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Référence</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantité</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Solde</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for mouvement in mouvements %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ mouvement.date|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if mouvement.type_mouvement == 'entree' %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Entrée
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Sortie
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ mouvement.reference|default:"-" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                {% if mouvement.type_mouvement == 'entree' %}
+                                    +{{ mouvement.quantite|intcomma }}
+                                {% else %}
+                                    -{{ mouvement.quantite|intcomma }}
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                {{ mouvement.solde_apres|intcomma }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                Aucun mouvement enregistré pour ce produit.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <div class="flex justify-between items-center">
+                    <div class="text-sm text-gray-500">
+                        Affichage des {{ mouvements|length }} derniers mouvements
+                    </div>
+                    <a href="#" class="text-sm font-medium text-blue-600 hover:text-blue-800">
+                        Voir tout l'historique <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
