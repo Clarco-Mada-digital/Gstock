@@ -73,7 +73,13 @@ def accueil(request):
     # Traiter les résultats
     mouvements_par_jour = {}
     for date, entrees, sorties in cursor.fetchall():
-        date_str = date.strftime('%d/%m')
+        # Convertir la date en objet date si ce n'est pas déjà le cas
+        if isinstance(date, str):
+            from datetime import datetime
+            date_obj = datetime.strptime(date, '%Y-%m-%d').date()
+            date_str = date_obj.strftime('%d/%m')
+        else:
+            date_str = date.strftime('%d/%m')
         mouvements_par_jour[date_str] = {'entrees': int(entrees or 0), 'sorties': int(sorties or 0)}
     
     # Préparer les séries pour le graphique
@@ -84,6 +90,12 @@ def accueil(request):
         data = mouvements_par_jour.get(date, {'entrees': 0, 'sorties': 0})
         serie_entrees.append(data['entrees'])
         serie_sorties.append(data['sorties'])
+    
+    # Récupérer les notifications non vues
+    notifications_non_lues = Notification.objects.filter(
+        utilisateur=request.user,
+        vue=False
+    ).order_by('-date_creation')[:10]
     
     # Préparer le contexte
     context = {
@@ -104,8 +116,6 @@ def accueil(request):
         },
         'produits_alerte_liste': produits_en_alerte,
         'categories_stats': categories_stats,
-        'derniers_mouvements': derniers_mouvements,
-        
         'derniers_mouvements': derniers_mouvements[:10],
         'dernieres_entrees': dernieres_entrees,
         'dernieres_sorties': dernieres_sorties,

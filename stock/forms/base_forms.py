@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.utils.translation import gettext_lazy as _
 
-from .models import Categorie, Produit, Fournisseur, EntreeStock, SortieStock
+from ..models import Categorie, Produit, Fournisseur, EntreeStock, SortieStock
 
 
 class CustomUserCreationForm(UserCreationForm):

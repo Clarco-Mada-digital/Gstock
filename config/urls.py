@@ -11,16 +11,16 @@ urlpatterns = [
     # URL de l'administration Django
     path('admin/', admin.site.urls),
     
-    # URL de l'application inventaire
-    path('', include('inventaire.urls', namespace='inventaire')),
-    
-    # URLs de l'application stock
-    path('', include('stock.urls', namespace='stock')),
-    
-    # URLs d'authentification Allauth
+    # Authentification
     path('accounts/', include('allauth.urls')),
     
-    # Redirection de la racine vers l'accueil
+    # Application principale (stock)
+    path('', include('stock.urls', namespace='stock')),
+    
+    # Autres applications
+    path('inventaire/', include('inventaire.urls', namespace='inventaire')),
+    
+    # Redirection de la racine vers l'accueil du stock
     path('', RedirectView.as_view(url='/', permanent=True)),
 ]
 

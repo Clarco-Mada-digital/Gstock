@@ -235,9 +235,26 @@ class SortieStock(models.Model):
 
     def delete(self, *args, **kwargs):
         """Restaure la quantité en stock du produit lors de la suppression."""
-        self.produit.quantite_stock += self.quantite
-        self.produit.save()
+        if not self.annulee:
+            self.produit.quantite_stock += self.quantite
+            self.produit.save()
         super().delete(*args, **kwargs)
+        
+    def annuler(self, utilisateur, motif=''):
+        """Annule cette sortie de stock."""
+        if not self.annulee:
+            self.annulee = True
+            self.date_annulation = timezone.now()
+            self.utilisateur_annulation = utilisateur
+            self.motif_annulation = motif
+            
+            # Restaure le stock
+            self.produit.quantite_stock += self.quantite
+            self.produit.save()
+            
+            self.save(update_fields=['annulee', 'date_annulation', 'utilisateur_annulation', 'motif_annulation'])
+            return True
+        return False
 
     def __str__(self):
         return f"Sortie de {self.quantite} {self.produit} le {self.date.strftime('%d/%m/%Y')}"

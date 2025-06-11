@@ -25,11 +25,11 @@
 {% endblock %}
 
 {% block page_actions %}
-    <div class="flex space-x-2">
-        <button onclick="window.print()" class="btn btn-secondary">
+    <div class="flex space-x-3">
+        <button onclick="window.print()" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <i class="fas fa-print mr-2"></i> Imprimer
         </button>
-        <a href="?export=pdf" class="btn btn-secondary">
+        <a href="?export=pdf" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <i class="fas fa-file-pdf mr-2"></i> Exporter en PDF
         </a>
     </div>
@@ -40,11 +40,11 @@
         <!-- En-tête avec filtres -->
         <div class="p-4 border-b border-gray-200">
             <form method="get" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <!-- Filtre par catégorie -->
-                    <div>
+                    <div class="md:col-span-4">
                         <label for="categorie" class="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                        <select name="categorie" id="categorie" class="form-select w-full">
+                        <select name="categorie" id="categorie" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                             <option value="">Toutes les catégories</option>
                             {% for categorie in categories %}
                                 <option value="{{ categorie.id }}" {% if request.GET.categorie == categorie.id|stringformat:'s' %}selected{% endif %}>
@@ -55,9 +55,9 @@
                     </div>
                     
                     <!-- Filtre par fournisseur -->
-                    <div>
+                    <div class="md:col-span-4">
                         <label for="fournisseur" class="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
-                        <select name="fournisseur" id="fournisseur" class="form-select w-full">
+                        <select name="fournisseur" id="fournisseur" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                             <option value="">Tous les fournisseurs</option>
                             {% for fournisseur in fournisseurs %}
                                 <option value="{{ fournisseur.id }}" {% if request.GET.fournisseur == fournisseur.id|stringformat:'s' %}selected{% endif %}>
@@ -68,11 +68,11 @@
                     </div>
                     
                     <!-- Boutons d'action -->
-                    <div class="flex items-end space-x-2">
-                        <button type="submit" class="btn btn-primary w-full">
+                    <div class="md:col-span-4 flex items-end space-x-2">
+                        <button type="submit" class="inline-flex items-center justify-center w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             <i class="fas fa-filter mr-2"></i>Filtrer
                         </button>
-                        <a href="{% url 'stock:rapport_stock_faible' %}" class="btn btn-secondary">
+                        <a href="{% url 'stock:rapport_stock_faible' %}" class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             <i class="fas fa-redo"></i>
                         </a>
                     </div>

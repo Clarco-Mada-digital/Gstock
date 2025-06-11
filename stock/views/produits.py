@@ -28,7 +28,8 @@ class ProduitListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['categories'] = Produit.CATEGORIE_CHOICES
+        from ..models import Categorie
+        context['categories'] = Categorie.objects.all()
         context['fournisseurs'] = Fournisseur.objects.all()
         context['title'] = _("Liste des produits")
         return context

@@ -57,8 +57,8 @@
                 <a href="{% url 'stock:liste_fournisseurs' %}" class="hover:text-blue-200 transition flex items-center {% if 'fournisseur' in request.resolver_match.url_name or 'fournisseurs' in request.resolver_match.url_name %}text-white font-medium{% endif %}">
                     <i class="fas fa-truck mr-2"></i> Fournisseurs
                 </a>
-                <a href="{% url 'stock:rapport_stock_faible' %}" class="hover:text-blue-200 transition flex items-center {% if 'rapports' in request.resolver_match.url_name %}text-white font-medium{% endif %}">
-                    <i class="fas fa-chart-bar mr-2"></i> Rapports
+                <a href="{% url 'stock:liste_categories' %}" class="hover:text-blue-200 transition flex items-center {% if 'categorie' in request.resolver_match.url_name or 'categories' in request.resolver_match.url_name %}text-white font-medium{% endif %}">
+                    <i class="fas fa-tags mr-2"></i> Catégories
                 </a>
                 <div class="relative group">
                     <button class="hover:text-blue-200 transition flex items-center focus:outline-none">
@@ -81,8 +81,8 @@
                         </a>
                     </div>
                 </div>
-                <a href="{% url 'stock:rapport_stock_faible' %}" class="hover:text-blue-200 transition flex items-center">
-                    <i class="fas fa-chart-bar mr-1"></i> Rapports
+                <a href="{% url 'stock:rapport_stock_faible' %}" class="hover:text-blue-200 transition flex items-center {% if 'rapports' in request.resolver_match.url_name %}text-white font-medium{% endif %}">
+                    <i class="fas fa-chart-bar mr-2"></i> Rapports
                 </a>
             </nav>
             

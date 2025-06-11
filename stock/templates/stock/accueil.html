@@ -463,158 +463,135 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-    // Données pour le graphique (à remplacer par les données réelles du contexte)
-    const ctx = document.getElementById('mouvementsChart').getContext('2d');
-    
-    // Données pour chaque période (à remplacer par des données réelles)
-    const periodes = {
-        '7j': {
-            labels: [
-                {% for date in mouvements_7j.labels %}'{{ date|date:"d/m" }}'{% if not forloop.last %},{% endif %}{% endfor %}
-            ],
-            entrees: [{% for entree in mouvements_7j.entrees %}{{ entree }}{% if not forloop.last %},{% endif %}{% endfor %}],
-            sorties: [{% for sortie in mouvements_7j.sorties %}{{ sortie }}{% if not forloop.last %},{% endif %}{% endfor %}]
-        },
-        '30j': {
-            labels: [
-                {% for date in mouvements_30j.labels %}'{{ date|date:"d/m" }}'{% if not forloop.last %},{% endif %}{% endfor %}
-            ],
-            entrees: [{% for entree in mouvements_30j.entrees %}{{ entree }}{% if not forloop.last %},{% endif %}{% endfor %}],
-            sorties: [{% for sortie in mouvements_30j.sorties %}{{ sortie }}{% if not forloop.last %},{% endif %}{% endfor %}]
-        },
-        '90j': {
-            labels: [
-                {% for date in mouvements_90j.labels %}'{{ date|date:"d/m" }}'{% if not forloop.last %},{% endif %}{% endfor %}
-            ],
-            entrees: [{% for entree in mouvements_90j.entrees %}{{ entree }}{% if not forloop.last %},{% endif %}{% endfor %}],
-            sorties: [{% for sortie in mouvements_90j.sorties %}{{ sortie }}{% if not forloop.last %},{% endif %}{% endfor %}]
-        }
-    };
-
-    // Configuration du graphique
-    const config = {
-        type: 'line',
-        data: {
-            labels: periodes['30j'].labels,
-            datasets: [
-                {
+    // Données pour le graphique des mouvements
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('mouvementsChart').getContext('2d');
+        
+        // Création du graphique avec les données disponibles (7 derniers jours par défaut)
+        const mouvementsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ dates|safe }},
+                datasets: [{
                     label: 'Entrées',
-                    data: periodes['30j'].entrees,
+                    data: {{ serie_entrees|safe }},
                     borderColor: 'rgb(16, 185, 129)',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
+                    tension: 0.3,
                     fill: true,
-                    pointBackgroundColor: 'white',
-                    pointBorderColor: 'rgb(16, 185, 129)',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                },
-                {
+                    borderWidth: 2
+                }, {
                     label: 'Sorties',
-                    data: periodes['30j'].sorties,
-                    borderColor: 'rgb(239, 68, 68)',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
+                    data: {{ serie_sorties|safe }},
+                    borderColor: 'rgb(245, 158, 11)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    tension: 0.3,
                     fill: true,
-                    pointBackgroundColor: 'white',
-                    pointBorderColor: 'rgb(239, 68, 68)',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                intersect: false,
-                mode: 'index',
+                    borderWidth: 2
+                }]
             },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                    titleFont: { size: 12, weight: '600' },
-                    bodyFont: { size: 13, weight: '500' },
-                    padding: 12,
-                    usePointStyle: true,
-                    callbacks: {
-                        label: function(context) {
-                            return ' ' + context.dataset.label + ': ' + context.parsed.y + ' unité' + (context.parsed.y > 1 ? 's' : '');
-                        },
-                        labelPointStyle: function() {
-                            return {
-                                pointStyle: 'circle',
-                                rotation: 0
-                            };
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 14 },
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y;
+                                }
+                                return label;
+                            }
                         }
                     }
-                }
-            },
-            scales: {
-                x: {
-                    grid: {
-                        display: false
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        }
                     },
-                    ticks: {
-                        color: '#6B7280'
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            borderDash: [4, 4]
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            font: {
+                                size: 12
+                            }
+                        }
                     }
                 },
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(229, 231, 235, 0.5)'
-                    },
-                    ticks: {
-                        color: '#6B7280',
-                        precision: 0
-                    }
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                },
+                animation: {
+                    duration: 1000
                 }
             }
-        }
-    };
-    
-    // Création du graphique
-    const mouvementsChart = new Chart(ctx, config);
-
-    // Gestion du changement de période
-    function updateChart(periode) {
-        const periodeData = periodes[periode];
-        
-        // Mise à jour des données du graphique
-        mouvementsChart.data.labels = periodeData.labels;
-        mouvementsChart.data.datasets[0].data = periodeData.entrees;
-        mouvementsChart.data.datasets[1].data = periodeData.sorties;
-        
-        // Mise à jour du titre
-        document.querySelector('.chart-card h3').textContent = 
-            `Mouvements des ${periode === '7j' ? '7' : periode === '30j' ? '30' : '90'} derniers jours`;
-        
-        // Mise à jour des boutons actifs
-        document.querySelectorAll('[id^="btn-"].bg-blue-600').forEach(btn => {
-            btn.classList.remove('bg-blue-600', 'text-white');
-            btn.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300');
         });
         
-        const activeBtn = document.getElementById(`btn-${periode}`);
-        activeBtn.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-300');
-        activeBtn.classList.add('bg-blue-600', 'text-white');
+        // Fonction pour mettre à jour le graphique (simplifiée pour l'instant)
+        function updateChart(periode) {
+            // Désactiver tous les boutons
+            document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+            });
+            
+            // Activer le bouton sélectionné
+            const btn = document.getElementById(`btn-${periode}`);
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+            btn.classList.add('bg-blue-600', 'text-white');
+            
+            // Pour l'instant, on ne change pas les données car elles ne sont pas chargées
+            // Dans une version ultérieure, on pourrait faire un appel AJAX pour charger les données
+            
+            // Mettre à jour le titre
+            document.querySelector('.card-header h3').textContent = 
+                `Mouvements des ${periode === '7j' ? '7' : periode === '30j' ? '30' : '90'} derniers jours`;
+            
+            // Afficher un message d'information
+            console.log(`Chargement des données pour les ${periode === '7j' ? '7' : periode === '30j' ? '30' : '90'} derniers jours...`);
+            // Ici, vous pourriez ajouter un appel AJAX pour charger les données dynamiquement
+        }
         
-        // Animation de mise à jour
-        mouvementsChart.update('none');
-    }
-
-    // Gestion des clics sur les boutons de période
+        // Gestion des clics sur les boutons de période
+        document.getElementById('btn-7j').addEventListener('click', () => updateChart('7j'));
+        document.getElementById('btn-30j').addEventListener('click', () => updateChart('30j'));
+        document.getElementById('btn-90j').addEventListener('click', () => updateChart('90j'));
+        
+        // Activer le bouton 7j par défaut (car c'est ce qui est chargé)
+        document.getElementById('btn-7j').classList.add('bg-blue-600', 'text-white');
+        document.getElementById('btn-7j').classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+    });
     document.getElementById('btn-7j').addEventListener('click', () => updateChart('7j'));
     document.getElementById('btn-30j').addEventListener('click', () => updateChart('30j'));
     document.getElementById('btn-90j').addEventListener('click', () => updateChart('90j'));

@@ -47,7 +47,7 @@ MIDDLEWARE = [
 # Configuration des URLs
 ROOT_URLCONF = 'config.urls'
 LOGIN_URL = 'account_login'
-LOGIN_REDIRECT_URL = 'accueil'
+LOGIN_REDIRECT_URL = 'stock:accueil'  # Ajout du namespace 'stock:'
 LOGOUT_REDIRECT_URL = 'account_login'
 
 # Configuration Allauth
@@ -59,11 +59,22 @@ AUTHENTICATION_BACKENDS = (
 SITE_ID = 1
 
 # Paramètres Allauth
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
+# Configuration moderne recommandée
+ACCOUNT_LOGIN_METHODS = ['email']
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+
+# Configuration des formulaires (désactivés temporairement pour le débogage)
+# ACCOUNT_SIGNUP_FORM_CLASS = 'stock.forms.CustomSignupForm'
+# ACCOUNT_FORMS = {
+#     'signup': 'stock.forms.CustomSignupForm',
+#     'login': 'allauth.account.forms.LoginForm',
+# }
+# SOCIALACCOUNT_FORMS = {
+#     'signup': 'stock.forms.CustomSocialSignupForm',
+# }
 
 # Modèle d'utilisateur personnalisé
 AUTH_USER_MODEL = 'stock.CustomUser'
@@ -119,7 +130,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -13,7 +13,7 @@ from .categories import (
 )
 from .mouvements import (
     ListeEntreesView, EntreeStockCreateView, EntreeStockDetailView, EntreeStockUpdateView,
-    ListeSortiesView, SortieStockCreateView, SortieStockDetailView,
+    ListeSortiesView, SortieStockCreateView, SortieStockDetailView, SortieStockUpdateView,
     annuler_entree, annuler_sortie
 )
 from .rapports import (
@@ -42,7 +42,7 @@ __all__ = [
     
     # Mouvements
     'ListeEntreesView', 'EntreeStockCreateView', 'EntreeStockDetailView', 'EntreeStockUpdateView',
-    'ListeSortiesView', 'SortieStockCreateView', 'SortieStockDetailView',
+    'ListeSortiesView', 'SortieStockCreateView', 'SortieStockDetailView', 'SortieStockUpdateView',
     'annuler_entree', 'annuler_sortie',
     
     # Rapports

@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 
 # Import des vues depuis le module views
 from . import views, api
@@ -8,7 +8,8 @@ from .views import (
     ProduitListView, ProduitDetailView, ProduitCreateView, ProduitUpdateView,
     CategorieListView, CategorieCreateView, CategorieUpdateView,
     FournisseurListView, FournisseurDetailView, FournisseurCreateView, FournisseurUpdateView,
-    EntreeStockCreateView, EntreeStockDetailView, EntreeStockUpdateView, SortieStockCreateView, SortieStockDetailView,
+    EntreeStockCreateView, EntreeStockDetailView, EntreeStockUpdateView, 
+    SortieStockCreateView, SortieStockDetailView, SortieStockUpdateView,
     supprimer_produit, supprimer_categorie, supprimer_fournisseur, 
     annuler_entree, annuler_sortie,
     ListeEntreesView, ListeSortiesView,
@@ -23,10 +24,10 @@ urlpatterns = [
     # Page d'accueil
     path('', views.accueil, name='accueil'),
     
-    # Authentification
-    path('connexion/', auth_views.LoginView.as_view(template_name='stock/connexion.html'), 
+    # Authentification (redirigé vers Allauth)
+    path('connexion/', RedirectView.as_view(url='/accounts/login/', permanent=False), 
          name='connexion'),
-    path('deconnexion/', auth_views.LogoutView.as_view(next_page='stock:accueil'), 
+    path('deconnexion/', RedirectView.as_view(url='/accounts/logout/', permanent=False), 
          name='deconnexion'),
     
     # Produits
@@ -60,6 +61,7 @@ urlpatterns = [
     path('sorties/', ListeSortiesView.as_view(), name='liste_sorties'),
     path('sorties/ajouter/', SortieStockCreateView.as_view(), name='ajouter_sortie'),
     path('sorties/<int:pk>/', SortieStockDetailView.as_view(), name='detail_sortie'),
+    path('sorties/<int:pk>/modifier/', SortieStockUpdateView.as_view(), name='modifier_sortie'),
     path('sorties/<int:pk>/annuler/', annuler_sortie, name='annuler_sortie'),
     
     # API

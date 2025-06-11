@@ -1,9 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
-from django.urls import reverse_lazy, reverse
+from django.views.generic import CreateView, UpdateView, DetailView, ListView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.urls import reverse_lazy
+from django.db.models import F
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect
-from django.db.models import Q, F, Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.http import JsonResponse
@@ -60,6 +60,7 @@ class EntreeStockCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateV
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = _("Nouvelle entrée de stock")
+        context['now'] = timezone.now()
         return context
     
     def form_valid(self, form):
@@ -171,14 +172,17 @@ class SortieStockCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateV
         produit = form.cleaned_data['produit']
         quantite = form.cleaned_data['quantite']
         
-        # Vérifier si le stock est suffisant
-        if produit.quantite_stock < quantite:
+        # Vérifier si le stock est suffisant en rechargeant le produit depuis la base de données
+        # pour éviter les problèmes de concurrence
+        produit_actuel = Produit.objects.get(pk=produit.pk)
+        if produit_actuel.quantite_stock < quantite:
             form.add_error('quantite', _("La quantité en stock est insuffisante."))
             return self.form_invalid(form)
         
-        # Mise à jour du stock du produit
-        produit.quantite_stock = F('quantite_stock') - quantite
-        produit.save(update_fields=['quantite_stock'])
+        # Mise à jour du stock du produit de manière atomique
+        Produit.objects.filter(pk=produit.pk).update(
+            quantite_stock=F('quantite_stock') - quantite
+        )
         
         messages.success(self.request, _("La sortie de stock a été enregistrée avec succès."))
         return super().form_valid(form)
@@ -195,6 +199,50 @@ class SortieStockDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['title'] = _("Détails de la sortie de stock")
         return context
+
+
+class SortieStockUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = SortieStock
+    form_class = SortieStockForm
+    template_name = 'stock/mouvements/sortie_form.html'
+    permission_required = 'stock.change_sortiestock'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _("Modifier la sortie de stock")
+        context['submit_text'] = _("Mettre à jour")
+        return context
+    
+    def form_valid(self, form):
+        # Récupérer l'ancienne quantité pour la restauration du stock
+        ancienne_sortie = self.get_object()
+        ancienne_quantite = ancienne_sortie.quantite
+        
+        # Restaurer l'ancienne quantité
+        Produit.objects.filter(pk=ancienne_sortie.produit.pk).update(
+            quantite_stock=F('quantite_stock') + ancienne_quantite
+        )
+        
+        # Mettre à jour avec la nouvelle quantité
+        produit = form.cleaned_data['produit']
+        nouvelle_quantite = form.cleaned_data['quantite']
+        
+        # Vérifier si le stock est suffisant
+        produit_actuel = Produit.objects.get(pk=produit.pk)
+        if produit_actuel.quantite_stock < nouvelle_quantite:
+            form.add_error('quantite', _("La quantité en stock est insuffisante."))
+            return self.form_invalid(form)
+        
+        # Mise à jour du stock avec la nouvelle quantité
+        Produit.objects.filter(pk=produit.pk).update(
+            quantite_stock=F('quantite_stock') - nouvelle_quantite
+        )
+        
+        messages.success(self.request, _("La sortie de stock a été mise à jour avec succès."))
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('stock:detail_sortie', kwargs={'pk': self.object.pk})
 
 def annuler_entree(request, pk):
     """

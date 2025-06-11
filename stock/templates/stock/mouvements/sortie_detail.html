@@ -95,9 +95,7 @@
                 </dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                     {% if sortie.client %}
-                        <a href="{% url 'stock:detail_client' sortie.client.pk %}" class="text-blue-600 hover:text-blue-800">
-                            {{ sortie.client.nom }}
-                        </a>
+                        {{ sortie.client }}
                     {% else %}
                         <span class="text-gray-400">Non spécifié</span>
                     {% endif %}
