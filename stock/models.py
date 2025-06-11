@@ -144,6 +144,7 @@ class EntreeStock(models.Model):
         on_delete=models.CASCADE,
         verbose_name=_('produit')
     )
+    annulee = models.BooleanField(_('annulée'), default=False, help_text=_("Indique si cette entrée a été annulée"))
     quantite = models.PositiveIntegerField(_('quantité'))
     prix_unitaire = models.DecimalField(
         _('prix unitaire'),

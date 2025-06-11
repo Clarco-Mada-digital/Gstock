@@ -202,7 +202,7 @@ def annuler_entree(request, pk):
     """
     if not request.user.has_perm('stock.delete_entreestock'):
         messages.error(request, _("Vous n'avez pas la permission d'annuler cette entrée."))
-        return redirect('stock:entree-list')
+        return redirect('stock:liste_entrees')
     
     entree = get_object_or_404(EntreeStock, pk=pk)
     
@@ -213,7 +213,7 @@ def annuler_entree(request, pk):
                 request,
                 _("Impossible d'annuler cette entrée car le stock actuel est insuffisant.")
             )
-            return redirect('stock:entree-detail', pk=pk)
+            return redirect('stock:detail_entree', pk=pk)
         
         # Mettre à jour le stock
         entree.produit.quantite_stock = F('quantite_stock') - entree.quantite
@@ -224,9 +224,9 @@ def annuler_entree(request, pk):
         entree.save(update_fields=['annulee'])
         
         messages.success(request, _("L'entrée de stock a été annulée avec succès."))
-        return redirect('stock:entree-list')
+        return redirect('stock:liste_entrees')
     
-    return redirect('stock:entree-detail', pk=pk)
+    return redirect('stock:detail_entree', pk=pk)
 
 def annuler_sortie(request, pk):
     """
@@ -234,7 +234,7 @@ def annuler_sortie(request, pk):
     """
     if not request.user.has_perm('stock.delete_sortiestock'):
         messages.error(request, _("Vous n'avez pas la permission d'annuler cette sortie."))
-        return redirect('stock:sortie-list')
+        return redirect('stock:liste_sorties')
     
     sortie = get_object_or_404(SortieStock, pk=pk)
     
@@ -248,6 +248,6 @@ def annuler_sortie(request, pk):
         sortie.save(update_fields=['annulee'])
         
         messages.success(request, _("La sortie de stock a été annulée avec succès."))
-        return redirect('stock:sortie-list')
+        return redirect('stock:liste_sorties')
     
-    return redirect('stock:sortie-detail', pk=pk)
+    return redirect('stock:detail_sortie', pk=pk)

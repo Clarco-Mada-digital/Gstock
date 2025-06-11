@@ -380,7 +380,7 @@ const updateStockApresSortie = (quantiteSortie) => {
     const produitData = produitsCache.get(parseInt(produitSelect.value));
     if (!produitData) return;
     
-    const stockApres = produitData.quantite - quantiteSortie;
+    const stockApres = produitData.quantite_stock - quantiteSortie;
     stockApresSortie.textContent = stockApres.toLocaleString('fr-FR');
     
     // Mettre en surbrillance si le stock devient critique
